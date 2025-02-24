@@ -35,7 +35,7 @@
 
 ## 二、数据类型
 
-### 4.  Integer相比int有什么优点？
+### 1.  Integer相比int有什么优点？
 
 | 特性                  | `int`                  | `Integer`                                              |
 | --------------------- | ---------------------- | ------------------------------------------------------ |
@@ -51,7 +51,7 @@
 
 ## 三、面向对象
 
-### 5. 怎么理解面向对象？简单说说封装继承多态
+### 1. 怎么理解面向对象？简单说说封装继承多态
 
 面向对象（Object-Oriented Programming, OOP）是一种 **程序设计思想**，核心是 **将现实世界的事物抽象成对象**，通过 **封装、继承、多态** 组织代码，提高代码的**复用性、可维护性、可扩展性**。
 
@@ -61,15 +61,14 @@
 
 
 
-### 6. 多态体现在哪几个方面？
+### 2. 多态体现在哪几个方面？
 
 1. 方法重写：子类**重写**父类的方法，父类引用指向子类对象时，调用的是子类的方法。
-2. 方法重载：在 **同一个类** 中，多个方法**方法名相同，参数列表不同**
-3. 接口多态：父接口引用指向子类（实现类）对象。
+2. 方法重载：在 **同一个类** 中，多个方法**方法名相同，参数列表不同**，编译器会根据调用方法时提供的参数类型和数量来决定具体调用哪个版本的方法。
 
 
 
-### 7.  多态解决了什么问题？
+### 3.  多态解决了什么问题？
 
 | **问题**               | **多态的解决方案**         | **带来的好处**               |
 | ---------------------- | -------------------------- | ---------------------------- |
@@ -82,26 +81,319 @@
 
 
 
-### 8. 面向对象的设计原则你知道有哪些吗
+### 4. 面向对象的设计原则你知道有哪些吗
 
-面向对象编程中的六大原则：
-
-1. 单一职责原则（SRP）：一个类应该只有一个引|起它变化的原因，即一个类应该只负责一项职责。例
-   子：考虑一个员工类，它应该只负责管理员工信息，而不应负责其他无关工作。
-2. 开放封闭原则（OCP）：软件实体应该对扩展开放，对修改封闭。例子：通过制定接口来实现这一原
-   则，比如定义一个图形类，然后让不同类型的图形继承这个类，而不需要修改图形类本身。
-3. 里氏替换原则（LSP）：子类对象应该能够替换掉所有父类对象。例子：一个正方形是一个矩形，但如
-   果修改一个矩形的高度和宽度时，正方形的行为应该如何改变就是一个违反里氏替换原则的例子。
-4. 接口隔离原则（ISP）：客户端不应该依赖那些它不需要的接口，即接口应该小而专。例子：通过接口
-   抽象层来实现底层和高层模块之间的解耦，比如使用依赖注入。
-5. 依赖倒置原则（DIP）：高层模块不应该依赖低层模块，二者都应该依赖于抽象；抽象不应该依赖于细
-   节，细节应该依赖于抽象。例子：如果一个公司类包含部门类，应该考虑使用合成/聚合关系，而不是
-   将公司类继承自部门类。
-6. 最少知识原则(Law of Demeter)：一个对象应当对其他对象有最少的了解，只与其直接的朋友交互。
+面向对象编程（OOP）的六大设计原则主要有：单一职责原则（SRP）、开放封闭原则（OCP）、里氏替换原则（LSP）、依赖倒置原则（DIP）、接口隔离原则（ISP） 和 迪米特法则（LoD）。
 
 
 
-### 9. 重载与重写有什么区别？
+1. **单一职责原则**（SRP）
+
+定义：一个类应该仅有一个职责。
+
+简单来说，一个类应该只负责一项任务。
+
+```java
+// 不遵守SRP：类做了太多的事情
+class UserService {
+    public void addUser(String username, String password) {
+        // 逻辑：添加用户
+    }
+
+    public void sendEmail(String email) {
+        // 逻辑：发送邮件
+    }
+}
+
+// 遵守SRP：分开职责
+class UserService {
+    private EmailService emailService;
+
+    public UserService(EmailService emailService) {
+        this.emailService = emailService;
+    }
+
+    public void addUser(String username, String password) {
+        // 添加用户逻辑
+    }
+}
+
+class EmailService {
+    public void sendEmail(String email) {
+        // 发送邮件逻辑
+    }
+}
+```
+
+在这个例子中，`UserService` 类负责添加用户，而 `EmailService` 类负责发送邮件。这样，代码更容易维护和扩展。
+
+2. **开放封闭原则**（OCP）
+
+定义：软件实体（类、模块、函数等）应该对扩展开放，对修改封闭。
+
+简单来说，当需要功能扩展时，可以通过新增代码来实现，而不是修改原有代码。
+
+```java
+// 不遵守OCP：每新增一种支付方式都要修改原有代码
+class PaymentService {
+    public void processPayment(String paymentType) {
+        if ("credit".equals(paymentType)) {
+            // 处理信用卡支付
+        } else if ("paypal".equals(paymentType)) {
+            // 处理PayPal支付
+        }
+    }
+}
+
+// 遵守OCP：通过继承和多态扩展
+interface PaymentMethod {
+    void processPayment();
+}
+
+class CreditCardPayment implements PaymentMethod {
+    public void processPayment() {
+        // 处理信用卡支付
+    }
+}
+
+class PayPalPayment implements PaymentMethod {
+    public void processPayment() {
+        // 处理PayPal支付
+    }
+}
+
+class PaymentService {
+    public void processPayment(PaymentMethod paymentMethod) {
+        paymentMethod.processPayment();
+    }
+}
+```
+
+通过使用接口和多态，我们可以轻松扩展支付方式，而无需修改 `PaymentService` 类。
+
+3. **里氏替换原则**（LSP）
+
+定义：子类对象应该能够替换父类对象并正常工作。
+
+简单来说，如果一个程序依赖于某个基类（或接口），那么用这个基类的任何一个子类替换后，程序仍然应该正常运行。
+
+1. **子类不能抛出父类未声明的异常**：异常行为必须符合父类的契约。
+
+2. **置条件不能加强，后置条件不能削弱**：方法执行前对输入参数的要求。子类的前置条件不能比父类更严格。方法执行后对输出结果的保证。子类的后置条件不能比父类更弱。
+
+```java
+// 不遵守LSP：子类不能替换父类的行为
+class Bird {
+    public void fly() {
+        System.out.println("Bird can fly");
+    }
+}
+
+class Ostrich extends Bird {
+    @Override
+    public void fly() {
+        throw new UnsupportedOperationException("Ostrich cannot fly");
+    }
+}
+
+// 遵守LSP：确保子类符合父类的期望行为
+class Bird {
+    public void move() {
+        System.out.println("Bird moves");
+    }
+}
+
+class Sparrow extends Bird {
+    @Override
+    public void move() {
+        System.out.println("Sparrow flies");
+    }
+}
+
+class Ostrich extends Bird {
+    @Override
+    public void move() {
+        System.out.println("Ostrich runs");
+    }
+}
+```
+
+在遵守LSP的例子中，`Sparrow` 和 `Ostrich` 都可以替换 `Bird` 类，并且行为符合预期。
+
+4. **依赖倒置原则**（DIP）
+
+定义：高层模块不应该依赖低层模块，两者都应该依赖抽象；抽象不应该依赖细节，细节应该依赖抽象。
+
+简单来说，DIP 要求模块之间的依赖关系通过抽象（如接口或抽象类）来建立，而不是直接依赖具体的实现类。这样可以降低耦合，提高系统的灵活性和可扩展性。
+
+```java
+// 不遵守DIP：高层模块直接依赖低层模块
+class LightBulb {
+    public void turnOn() {
+        System.out.println("LightBulb turned on");
+    }
+}
+
+class Switch {
+    private LightBulb bulb;
+
+    public Switch(LightBulb bulb) {
+        this.bulb = bulb;
+    }
+
+    public void operate() {
+        bulb.turnOn();
+    }
+}
+
+// 遵守DIP：引入抽象接口
+interface Switchable {
+    void turnOn();
+}
+
+class LightBulb implements Switchable {
+    public void turnOn() {
+        System.out.println("LightBulb turned on");
+    }
+}
+
+class Fan implements Switchable {
+    public void turnOn() {
+        System.out.println("Fan turned on");
+    }
+}
+
+class Switch {
+    private Switchable device;	// 接口
+
+    public Switch(Switchable device) {
+        this.device = device;
+    }
+
+    public void operate() {
+        device.turnOn();
+    }
+}
+```
+
+在遵守DIP的例子中，`Switch` 类依赖于 `Switchable` 接口，而不是具体的 `LightBulb` 或 `Fan`，这样我们可以轻松添加其他可操作的设备而不需要修改 `Switch` 类。
+
+5. **接口隔离原则**（ISP）
+
+定义：客户端不应该被迫依赖它不使用的接口。（客户端（Client）指的是**使用某个接口或类的代码实体**。）
+
+简单来说，一个类应该只依赖它需要的接口方法，而不是被迫去实现或使用一个功能过多、包含无关方法的‘大而全’接口
+
+```java
+// 不遵守ISP：接口过大，客户端实现了不需要的方法
+interface Worker {
+    void work();
+    void eat();
+}
+
+class Robot implements Worker {
+    public void work() {
+        System.out.println("Robot is working");
+    }
+
+    public void eat() {
+        throw new UnsupportedOperationException("Robot does not eat");
+    }
+}
+
+class Human implements Worker {
+    public void work() {
+        System.out.println("Human is working");
+    }
+
+    public void eat() {
+        System.out.println("Human is eating");
+    }
+}
+
+// 遵守ISP：拆分接口
+interface Workable {
+    void work();
+}
+
+interface Eatable {
+    void eat();
+}
+
+class Robot implements Workable {
+    public void work() {
+        System.out.println("Robot is working");
+    }
+}
+
+class Human implements Workable, Eatable {
+    public void work() {
+        System.out.println("Human is working");
+    }
+
+    public void eat() {
+        System.out.println("Human is eating");
+    }
+}
+```
+
+遵守ISP后，`Robot` 类只实现了 `Workable` 接口，不需要去实现不必要的 `eat()` 方法。
+
+6. **迪米特法则**（LoD）
+
+定义：一个对象应该对其他对象有尽可能少的了解。
+
+简单来说，减少对象之间的依赖关系，避免直接访问其他类的内部数据。
+
+```java
+// 不遵守LoD：类与类之间的依赖过多
+class Car {
+    private Engine engine;
+
+    public Car(Engine engine) {
+        this.engine = engine;
+    }
+
+    public void start() {	// 直接调用 Engine 的 ignite 方法
+        engine.ignite();
+    }
+}
+
+class Engine {
+    public void ignite() {
+        System.out.println("Engine started");
+    }
+}
+
+// 遵守LoD：通过方法间接访问，减少直接依赖
+class Car {
+    private Engine engine;
+
+    public Car(Engine engine) {
+        this.engine = engine;
+    }
+
+    public void start() {
+        engine.startEngine();	// 调用 Engine 的高层接口
+    }
+}
+
+class Engine {
+    public void startEngine() {
+        ignite();	 // 内部实现细节被封装
+    }
+
+    private void ignite() {
+        System.out.println("Engine started");
+    }
+}
+```
+
+在遵守LoD的例子中，`Car` 类通过 `Engine` 的公有方法 `startEngine()` 来间接启动引擎，而不直接调用 `ignite()` 方法，从而减少了对 `Engine` 类内部实现的依赖。Car 知道引擎启动需要调用 `ignite`，这超出了它应该知道的范围。理想情况下，Car 只需发出“启动”指令，具体怎么启动应由 Engine 自己负责。
+
+
+
+### 5. 重载与重写有什么区别？
 
 **重载（Overloading）**指的是在同一个类中，可以有**多个同名方法**，它们具有**不同的参数列表**（参数类
 型、参数个数或参数顺序不同），**编译器**根据调用时的参数类型来决定调用哪个方法。
@@ -110,7 +402,7 @@
 
 
 
-### 10. 抽象类和普通类有什么区别
+### 6. 抽象类和普通类有什么区别
 
 1. 抽象类不能实例化，普通类可以。
 
@@ -122,7 +414,7 @@
 
 
 
-### 11. 非静态内部类和静态内部类的区别
+### 7. 非静态内部类和静态内部类的区别
 
 | 特性               | 非静态内部类                    | 静态内部类                               |
 | ------------------ | ------------------------------- | ---------------------------------------- |
@@ -136,13 +428,13 @@
 
 
 
-### 12. 非静态内部类可以直接访问外部方法，编译器是怎么做到的？
+### 8. 非静态内部类可以直接访问外部方法，编译器是怎么做到的？
 
 编译器在生成字节码时会为非静态内部类维护一个指向外部类实例的引用。编译器会在生成非静态内部类的构造方法时，将外部类实例作为参数传入
 
 
 
-### 13. 在我new一个子类对象的时候加载顺序是怎么样的？
+### 9. 在我new一个子类对象的时候加载顺序是怎么样的？
 
 1. 首先会加载父类的静态成员变量和静态代码块
 
@@ -153,7 +445,7 @@
 
 ## 四、深拷贝和浅拷贝
 
-### 14. 浅拷贝和深拷贝有什么区别
+### 1. 浅拷贝和深拷贝有什么区别
 
 浅拷贝是指只复制对象本身和其内部的值类型字段，但不会复制对象内部的引用类型字段。
 
@@ -161,7 +453,7 @@
 
 
 
-### 15. 实现深拷贝的三种方法是什么？
+### 2. 实现深拷贝的三种方法是什么？
 
 1. 实现 Cloneable 接口并重写 clone() 方法
 
@@ -179,7 +471,7 @@
 
 ## 五、泛型
 
-### 16. 什么是泛型
+### 1. 什么是泛型
 
 泛型 是一种在编译时支持参数化类型的`特性`，允许类、接口和方法使用占位符（类型参数）来指定数据类型，从而提高代码的**类型安全性**和**复用性**。
 
@@ -187,7 +479,7 @@
 
 ## 六、对象
 
-### 17. 除了new创建对象还有什么方法
+### 1. 除了new创建对象还有什么方法
 
 1. 通过反射（newInstance）
 2. 通过反序列化
@@ -198,13 +490,13 @@
 
 ## 七、反射
 
-### 18. 反射是什么
+### 1. 反射是什么
 
 反射是一种运行时动态获取和操作类信息的机制。它允许程序在运行时访问和修改类的成员，调用方法或创建对象，而无需在编译时知道具体的类名或结构。
 
 
 
-### 19. 反射在你平时写代码或者框架中的应用场景有哪些?
+### 2. 反射在你平时写代码或者框架中的应用场景有哪些?
 
 Spring框架：
 
@@ -224,7 +516,7 @@ Spring MVC：
 
 ## 八、代理
 
-### 20. 什么是代理
+### 1. 什么是代理
 
 代理是一种**设计模式**，也是一种**机制**，通过在方法调用前后加入额外的行为，增加了灵活性。
 
@@ -239,7 +531,7 @@ Spring MVC：
 
 ## 九、异常
 
-### 21. 抛出异常不用 throws 的情况
+### 2. 抛出异常不用 throws 的情况
 
 1. 抛出的是运行时异常
 2. 方法内部捕获了异常
@@ -248,11 +540,25 @@ Spring MVC：
 
 ## 十、Object
 
-### == 与 equals 有什么区别？
+### 1. == 与 equals 有什么区别？
 
 == ： 是一个**关系运算符**，用于比较两个操作数的基本值。
 
 equals：来自 **Object** 类，Object 类中的是比较对象的引用地址是否相同，但是不可以对这个方法进行重写，比如 String, Inter 类对 equals 进行了重写，它们的类型比较的是内容是否相同。
 
 
+
+### 2. StringBuffer和StringBuild区别是什么？
+
+**StringBuffer**: 是线程安全的。它的方法都使用了 **synchronized** 关键字进行同步，确保在多线程环境下多个线程不会同时修改同一个 StringBuffer 对象。但由于同步带来的开销，性能较低。
+
+**StringBuffer**:因为有同步机制，每次操作都会有额外的锁开销，因此执行速度较慢。
+
+
+
+## 十一、序列化
+
+### 1. 序列化和反序列化让你自己实现你会怎么做?
+
+Java 默认的序列化虽然实现方便，但却存在安全漏洞、不跨语言以及性能差等缺陷。我会考虑用主流序列化框架，比如FastJson、Protobuf来替代Java 序列化。
 
