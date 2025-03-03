@@ -273,6 +273,220 @@ TreeSet依赖  `compareTo()`，相同 `compareTo()` 结果的元素被视为重�
 
 ## 四、Map
 
+### 1. 如何对map进行快速遍历？
+
+1. 增强for + entrySet/keySet/values
+
+```java
+// 使用 entrySet() 遍历
+for (Map.Entry<String, Integer> entry : map.entrySet()) {
+    String key = entry.getKey();
+    Integer value = entry.getValue();
+    System.out.println("Key: " + key + ", Value: " + value);
+}
+
+// 使用 keySet() 遍历
+for (String key : map.keySet()) {
+    Integer value = map.get(key);
+    System.out.println("Key: " + key + ", Value: " + value);
+}
+
+// 使用 values() 遍历
+for (Integer value : map.values()) {
+    System.out.println("Value: " + value);
+}
+```
+
+2. 使用 forEach() 方法
+
+```java
+// 使用 forEach() 遍历
+map.forEach((key, value) -> System.out.println("Key: " + key + ", Value: " + value));
+```
+
+3. 使用迭代器（Iterator）
+
+```java
+// 使用 Iterator 遍历 entrySet
+Iterator<Map.Entry<String, Integer>> iterator = map.entrySet().iterator();
+while (iterator.hasNext()) {
+    Map.Entry<String, Integer> entry = iterator.next();
+    System.out.println("Key: " + entry.getKey() + ", Value: " + entry.getValue());
+}
+```
+
+
+
+### 2. HashMap实现原理介绍一下？
+
+HashMap 的底层实现基于哈希表，核心是一个数组，每个数组元素称为一个“桶”（bucket）,键值对通过哈希计算映射到某个桶。当多个键映射到同一个桶（哈希冲突）时，这些键值对以链表形式存储。Java 8 引入，当某个桶的链表过长（默认超过 8 个节点），会将链表转为红黑树以优化查找性能。
+
+
+
+### 3. 了解的哈希冲突解决方法有哪些？
+
+**分离链接法**：每个桶存储一个链表（或其他数据结构，如红黑树）。当多个键映射到同一个桶时，这些键值对被添加到该桶的链表中。查找时，先通过哈希函数定位桶，然后遍历链表查找目标键。
+
+**开放寻址法**：当发生冲突时，按照某种探测策略在数组中寻找下一个空槽插入。查找时也按照相同的策略，直到找到目标键或空槽（表示未找到），常见的探测策略有线性探测，平方探测，双重哈希。
+
+**再哈希**：使用多个哈希函数。如果第一个哈希函数发生冲突，使用另一个哈希函数重新计算位置，直到找到空位。
+
+**哈希桶扩容**：当哈希冲突过多时，可以动态地扩大哈希桶的数量，重新分配键值对，以减少冲突的概率。
+
+
+
+### 4. HashMap是线程安全的吗？
+
+HashMap 是线程不安全的。
+
+1. 数据覆盖和丢失：多个线程同时调用 put 方法可能导致数据覆盖。
+
+2. 扩容时的并发问题：在扩容（resize）时，HashMap 需要重新分配所有元素到新的数组，可能出现链表死循环或数据丢失
+
+3. 迭代时的 `ConcurrentModificationException`：HashMap 的迭代器是 fail-fast 的。如果在迭代过程中，另一个线程修改了 HashMap 的结构（增删元素），会导致程序抛出 `ConcurrentModificationException` 异常
+
+
+
+### 5. hashmap的put过程介绍一下
+
+1.  根据要添加的键的哈希码计算在数组中的位置（索引）。
+2. 检查该位置是否为空（即没有键值对存在）
+   - 槽位为空：直接创建一个新的节点（Node），放入该槽位。
+   - 槽位不为空
+     - 如果是链表遍历链表，查找是否有键相同的节点。如果找到相同的键，就覆盖旧值；如果没找到，就在链表尾部插入新节点，插入后链表长度超过阈值时，链表会转为红黑树。
+     - 如果是红黑树，查找是否有键相同的节点。如果找到相同的键，就覆盖旧值；如果没找到，调用红黑树的插入逻辑，插入新节点。
+
+3. 检查前元素数量是否超过扩容阈值，如果超过了，进行扩容操作
+
+
+
+### 6. hashmap 调用get方法一定安全吗？
+
+多线程下存在问题：在 get 方法遍历链表时，另一个线程可能正在调整链表结构（比如插入或删除节点），导致 get 方法遍历出错，甚至抛出异常。如果另一个线程触发了扩容（resize），HashMap 内部数组会被替换，get 方法可能访问到错误的槽位或旧数据。
+
+
+
+### 7. HashMap一般用String 做为Key，为什么？
+
+1. String 是不可变的（immutable）。一旦创建，其内容无法更改。果键对象在插入后被修改，导致 hashCode() 改变，那么后续的 get 操作可能无法找到原来的值（因为哈希值变了，槽位索引变了）。
+
+2. String 的 hashCode() 方法实现经过精心设计，能够较好地分布哈希值，减少冲突。
+3. String 的 equals() 方法基于内容比较，保证了基于内容的正确比较
+4. String 对象在 JVM 中可以通过字符串常量池复用。减少了内存开销
+
+
+
+### 8. 为什么HashMap要用红黑树而不是平衡二叉树？
+
+
+
+
+
+### 9. hashmap key可以为null吗？
+
+可以为 null。
+
+在 HashMap 中，键的哈希值通过 hash() 方法计算。对于 null 键，HashMap 直接返回 0，取余后依然为0，放在槽位 0。
+
+
+
+### 10. 自定义类作为 HashMap 的键时，如何正确重写 equals() 和 hashCode() 方法
+
+（1）遵守 equals() 和 hashCode() 的契约
+
+Java 的 Object 类定义了 equals() 和 hashCode() 的契约，必须严格遵守，否则 HashMap 的行为会不正确。契约如下：
+
+- 自反性：对于任何非 null 的对象 x，x.equals(x) 必须返回 true。
+- 对称性：对于任何非 null 的对象 x 和 y，如果 x.equals(y) 为 true，则 y.equals(x) 也必须为 true。
+- 传递性：对于任何非 null 的对象 x、y 和 z，如果 x.equals(y) 为 true，且 y.equals(z) 为 true，则 x.equals(z) 也必须为 true。
+- 一致性：对于任何非 null 的对象 x 和 y，只要 x 和 y 的状态（用于比较的字段）不变，多次调用 x.equals(y) 必须始终返回相同的结果。
+- hashCode 一致性：如果 x.equals(y) 返回 true，则 x.hashCode() 必须等于 y.hashCode()。
+
+（2）equals() 和 hashCode() 必须基于相同的字段
+
+equals() 和 hashCode() 方法必须基于相同的字段来计算，否则会破坏契约。例如：
+
+- 如果 equals() 只比较 id，但 hashCode() 使用 id 和 name，可能导致两个 equals() 为 true 的对象有不同的哈希值。
+
+
+
+### 11. HashMap的扩容机制介绍一下
+
+容量：HashMap 底层数组的长度，即槽位（bucket）的数量。默认初始容量是 16。
+
+负载因子：决定何时触发扩容的阈值比例，默认是 0.75。表示当元素数量达到容量的 75% 时，触发扩容。
+
+阈值：触发扩容的临界值，计算公式为 容量 x 负载因子
+
+
+
+触发条件：
+
+1. 当 `HashMap` 数组中的元素数量 `size` 超过阈值时
+
+2. 插入元素后如果链表长度大于阈值，将要变成红黑树时，如果数组容量小于 64，也会触发扩容，先扩容到64，然后将链表变成红黑树
+
+`HashMap` 会将数组的容量扩大为原来的两倍。将原来数组中的元素重新分配到新数组中，新数组索引是 `index = hash & (newCapacity - 1)`，由于 `newCapacity` 是 `oldCapacity` 的 2 倍，`newCapacity - 1` 的二进制形式比 `oldCapacity - 1` 多了一位高位的1。因此，元素要么留在原索引，要么移动到 原索引 + oldCapacity 的位置。最后数组引用和内部字段元素个数，容量等。
+
+
+
+### 12. HashMap的大小为什么是2的n次方大小呢？
+
+1. 方便通过位运算计算索引：当数组长度是 2 的 n 次方时，length - 1 的二进制表示是一串全 1 的位，哈希值的索引计算公式为：index = hash & (length - 1)（相当于hash % length），但位运算比取模运算快得多。
+
+2. 扩容时的均匀性：如果容量是 2 的幂次方，元素的重新分配只需要根据哈希值的高位进行简单调整，而不需要重新计算整个哈希映射。
+
+
+
+### 13. 说说hashmap的负载因子
+
+负载因子默认值 0.75 是一个经验折中，适用于大多数场景。当 HashMap 中的元素个数超过了容量的 75% 时，就会进行扩容。
+
+负载因子较小可以提高性能，但增加内存开销。负载因子较大可以节省内存，但可能导致冲突增多，性能下降。
+
+
+
+### 14. Hashmap和Hashtable有什么不一样的？
+
+- HashMap线程不安全，效率高一点，可以存储null的key和value，null的key只能有一个，null的value可以有多个。默认初始容量为16，每次扩充变为原来2倍。**底层数据结构为数组+链表**，插入元素后如果链表长度大于阈值（默认为8），先判断数组长度是否小于64，如果小于，则扩充数组，反之将链表转化为**红黑树**，以减少搜索时间。
+- HashTable线程安全，效率低一点，其**内部方法基本都经过synchronized修饰**，不可以有null的key和value。默认初始容量为11，每次扩容变为原来的2n+1。创建时给定了初始容量，会直接用给定的大小。**底层数据结构为数组+链表**。它基本被淘汰了，要保证线程安全可以用ConcurrentHashMap。
+
+
+
+### 15. ConcurrentHashMap怎么实现的？
+
+采用 CAS 操作和 synchronized 锁来实现线程安全的，通过 volatile 修饰数组元素，保证读线程能看到最新的数据。
+
+
+
+### 16. 已经用了synchronized，为什么还要用CAS呢？
+
+CAS 不需要加锁，避免了 synchronized 带来的阻塞和上下文切换开销。在低竞争场景下，CAS 通常只需一次操作即可成功，性能远高于加锁。synchronized 提供了细粒度的锁，适合复杂操作（如链表/红黑树操作），保证线程安全。必要时使用 synchronized（加锁），确保复杂操作的正确性。避免了单一机制的局限性，最大化了并发性能，同时保持了线程安全。
+
+
+
+### 17. ConcurrentHashMap用了悲观锁还是乐观锁?
+
+同时使用了乐观锁和悲观锁
+
+乐观锁（CAS）：优先使用，体现其高并发设计思想，适合简单操作、低竞争场景。
+
+悲观锁（synchronized）：作为补充，用于复杂操作或高竞争场景，确保线程安全和数据一致性。
+
+总体倾向：从设计目标（高并发、无锁读、细粒度写）来看，ConcurrentHashMap 更倾向于乐观锁的思想，但通过结合两种锁实现了性能和安全性的平衡。
+
+
+
+### 18. HashTable线程安全是怎么实现的？
+
+Hashtable 的所有公共方法都使用 synchronized 关键字修饰（全局锁）。synchronized方法或者访问synchronized代码块时，这个线程便获得了该对象的锁，其他线程暂时无法访问这个方法，只有等待这个方法执行完毕或者代码块执行完毕，这个线程才会释放该对象的锁，其他线程才能执行这个方法或者代码块。
+
+原子性：全局锁保证了每个操作（如 put、get）是原子的，防止多线程并发修改导致数据不一致。
+
+一致性：在操作期间，其他线程无法访问 Hashtable，避免了脏读、幻读等问题。
+
+互斥性：同一时间只有一个线程可以执行任何同步方法，其他线程会被阻塞。
+
 
 
 
