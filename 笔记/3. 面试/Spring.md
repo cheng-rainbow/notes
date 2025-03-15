@@ -257,13 +257,13 @@ Spring 容器里存储的主要是 **Bean**，即由 Spring 管理的对象。Sp
 
 ### 1. 介绍一下MVC分层
 
-**MVC（Model-View-Controller）** 是一种经典的设计模式，旨在将应用程序的不同职责分离，以提高可维护性、可扩展性和可测试性。MVC 模式通过将应用程序分为三个核心部分：**模型（Model）**、**视图（View）** 和 **控制器（Controller）**
+**MVC（Model-View-Controller）** 是一种经典的设计模式，主要用于**前后端分离**或**服务端渲染**的 Web 应用开发。MVC 模式通过将应用程序分为三个核心部分：**模型（Model）**、**视图（View）** 和 **控制器（Controller）**
 
 **Model（模型层）**：负责处理业务逻辑和数据访问。
 
 **View（视图层）**：负责显示用户界面，呈现模型数据。
 
-**Controller（控制器层）**：负责处理用户请求，协调模型和视图。
+**Controller（控制器层）**：负责处理用户请求，调用 Model 处理数据，返回 View 渲染页面或 JSON 数据。
 
 
 
@@ -277,7 +277,7 @@ Spring 容器里存储的主要是 **Bean**，即由 Spring 管理的对象。Sp
 
 4. **执行控制器方法（Controller）**：控制器方法处理请求，调用业务层，生成模型数据并返回视图或 `ModelAndView`。
 
-5. **视图解析（View Resolution）**：`DispatcherServlet` 获取控制器返回的视图名称，交给视图解析器解析并渲染。
+5. **视图解析（View Resolution）/数据转换**：`DispatcherServlet` 获取控制器返回的视图名称，交给视图解析器解析并渲染。
 
 6. **渲染视图并响应客户端**：最终，视图引擎将数据填充到视图模板中并返回给客户端。
 
@@ -285,11 +285,9 @@ Spring 容器里存储的主要是 **Bean**，即由 Spring 管理的对象。Sp
 
 ### 3. Handlermapping 和 handleradapter有了解吗
 
-**HandlerMapping**：
-`HandlerMapping` 是 Spring MVC 中用于将 HTTP 请求映射到具体处理器（通常是控制器方法）的组件。它根据请求的 URL、请求方法（如 GET、POST）等信息，选择一个合适的控制器方法来处理请求。Spring 提供了多种实现方式，比如 `RequestMappingHandlerMapping`（基于注解的映射）和 `BeanNameUrlHandlerMapping`（通过 Bean 名称映射）等。
+**HandlerMapping**：根据请求 URL 解析并找到对应的 `Handler`（即 Controller 方法）
 
-**HandlerAdapter**：
-`HandlerAdapter` 是 Spring MVC 中负责执行处理器（控制器方法）的组件。它根据处理器的类型（如传统的 `Controller`、`HttpRequestHandler` 或注解驱动的 `@RequestMapping` 方法），选择合适的适配器来调用对应的方法并处理请求。每种不同的处理器类型都可能有不同的适配器。
+**HandlerAdapter**：HandlerAdapter 负责调用找到的 `Handler`，适配不同的 `Handler` 类型
 
 
 
@@ -297,11 +295,11 @@ Spring 容器里存储的主要是 **Bean**，即由 Spring 管理的对象。Sp
 
 ### 1. 为什么使用springboot
 
-1. **快速开发**：Spring Boot 提供了开箱即用的配置，减少了大量的 XML 配置，采用约定优于配置的方式，能迅速搭建一个 Web 应用或微服务架构应用，提升开发效率。
+1. **快速开发**：Spring Boot 采用约定优于配置的方式，提供了开箱即用的配置，能迅速搭建一个 Web 应用或微服务架构应用，提升开发效率。
 
-2. **简化配置**：Spring Boot 通过 `application.properties` 或 `application.yml` 文件来集中配置项目，提供了一种更加简洁和一致的方式来管理应用的配置。通过 Spring Boot 的约定，减少了很多繁琐的配置工作。
+2. **简化配置**：Spring Boot 通过 `application` 文件来集中配置项目，提供了一种更加简洁和一致的方式来管理应用的配置。
 
-3. **内嵌式服务器**：Spring Boot 集成了多个内嵌式服务器（如 Tomcat），可以直接以独立的 Java 应用运行，无需额外的 web 容器部署（如传统的 WAR 包部署）。这样，开发、测试和生产环境的配置一致性更高。
+3. **内嵌式服务器**：Spring Boot 集成了多个内嵌式服务器（如 Tomcat），可以直接以独立的 Java 应用运行，无需额外的 web 容器部署（如传统的 WAR 包部署）。
 
 
 
@@ -309,11 +307,10 @@ Spring 容器里存储的主要是 **Bean**，即由 Spring 管理的对象。Sp
 
 约定大于配置是SpringBoot的核心设计理念，它通过预设合理的默认行为和项目规范，大幅减少开发者需要手动配置的步骤，从而提升开发效率和项目标准化程度。
 
-**“约定大于配置”** 在 Spring Boot 中意味着：
+**“约定大于配置”**意味着：
 
-- 框架为你提供了大量的默认配置和行为，开发者无需进行繁琐的手动配置。
-- 通过遵循这些默认约定，开发者能够快速开始项目开发，专注于业务逻辑，而非底层配置。
-- 如果默认配置不适用，可以通过配置文件轻松覆盖，依然保留了高度的灵活性。
+- **Spring Boot 提供了大量的默认配置和约定**，如果开发者遵循这些默认约定，系统可以正常运行，无需进行任何额外配置。
+- 只有在**不满足默认约定**的情况下，开发者才需要进行配置或修改。
 
 
 
@@ -341,10 +338,10 @@ Spring 容器里存储的主要是 **Bean**，即由 Spring 管理的对象。Sp
 
 ### 5. 说几个启动器（starter)？
 
-1. spring-boot-starter-web：这是最常用的起步依赖之一，它包含了Spring MVC和Tomcat嵌入式服务器，用于快速构建Web应用程序。
-2. spring-boot-starter-security：提供了SpringSecurity的基本配置，帮助开发者快速实现应用的安全性，包括认证和授权功能。
-3. spring-boot-starter-data-redis：用于集成Redis缓存和数据存储服务。这个Starter包含了与Redis交互所需的客户端（默认是Jedis客户端，也可以配置为Lettuce客户端），以及SpringDataRedis的支持使得在SpringBoot应用中使用Redis变得非常便捷。同样地，需要在配置文件中设置Redis服务器的连接详情
-4. spring-boot-starter-test：包含了单元测试和集成测试所需的库，如JUnit,Spring Test,Assert等，便于进行测试驱动开发(TDD)。
+1. `spring-boot-starter-web`：这是最常用的起步依赖之一，它包含了Spring MVC和Tomcat嵌入式服务器，用于快速构建Web应用程序。
+2. `spring-boot-starter-security`：提供了SpringSecurity的基本配置，帮助开发者快速实现应用的安全性，包括认证和授权功能。
+3. `spring-boot-starter-data-redis`：用于集成Redis缓存和数据存储服务。这个Starter包含了与Redis交互所需的客户端（默认是Jedis客户端，也可以配置为Lettuce客户端），以及SpringDataRedis的支持使得在SpringBoot应用中使用Redis变得非常便捷。同样地，需要在配置文件中设置Redis服务器的连接详情
+4. `spring-boot-starter-test`：包含了单元测试和集成测试所需的库，如JUnit,Spring Test,Assert等，便于进行测试驱动开发(TDD)。
 
 
 
@@ -397,22 +394,24 @@ public class UserServiceImpl implements UserService {
 ### 1. 与传统的JDBC相比，MyBatis的优点？
 
 1. **简化代码，减少样板代码**
-   用传统JDBC时，你需要手动写一大堆代码来处理连接、SQL语句、参数设置、结果集映射等步骤。而MyBatis通过XML或注解的方式，把SQL语句和映射逻辑抽出来，开发者只需要关注SQL本身，不用写繁琐的JDBC boilerplate代码。
+   用传统JDBC时，你需要手动写一大堆代码来处理连接、参数设置、结果集映射等步骤。而MyBatis通过XML或注解的方式，把SQL语句和映射逻辑抽出来，开发者只需要关注SQL本身。
 2. **SQL与代码分离**
-   MyBatis允许你把SQL语句写在XML文件里（或者用注解），而不是硬编码在Java代码中。这样SQL更容易维护和调试，尤其是项目大了之后，改SQL不用动Java代码，降低了耦合性。
+   MyBatis允许你把SQL语句写在XML文件里（或者用注解），而不是硬编码在Java代码中。这样SQL更容易维护和调试，降低了耦合性。
 3. **自动映射结果**
    在JDBC中，你得一行一行从ResultSet里取数据，手动映射到对象属性。MyBatis可以自动把查询结果映射到Java对象（POJO），支持复杂对象关系映射（比如一对多、多对多），省时省力。
 4. **集成性强**
-   MyBatis跟Spring、Spring Boot这些框架集成非常方便，配置简单，能快速融入现代开发生态。JDBC虽然也能集成，但需要更多手动配置。
+   MyBatis跟Spring Boot这些框架集成非常方便，配置简单，。JDBC虽然也能集成，但需要更多手动配置。
 
 
 
 ### 2. Mybatis里的 # 和 $ 的区别？
 
 - **#{}**
-- Mybatis 在处理 # 时，会创建预编译的SQL语句，将SQL 中的 `#{}` 替换为 `？`号，在执行SQL 时会为预编译SQL中的占位符赋值，调用PreparedStatement的set方法来赋值，预编译的SQL语句执行效率高，并且可以`防止SQL注入`，提供更高的安全性，适合传递参数值。
+  - Mybatis 在处理 # 时，会创建预编译的SQL语句，将SQL 中的 `#{}` 替换为 `？`号，在执行SQL 时会为预编译SQL中的占位符赋值，调用PreparedStatement的set方法来赋值，预编译的SQL语句执行效率高，并且可以`防止SQL注入`，提供更高的安全性，适合传递参数值。
+
 - **${}**
-- Mybatis 在处理$O时，只是创建普通的SQL 语句，然后在执行SQL语句时MyBatis 将参数直接拼入到SQL 里，不能防止 SQL 注入，因为参数直接拼接到SQL 语句中，如果参数未经过验证、过滤，可能会导致安全问题。
+  - Mybatis 在处理$O时，只是创建普通的SQL 语句，然后在执行SQL语句时 MyBatis 将参数直接拼入到SQL 里，不能防止 SQL 注入。
+
 
 
 
@@ -421,11 +420,11 @@ public class UserServiceImpl implements UserService {
 MyBatis-Plus是在MyBatis基础上做了增强，提供了更多开箱即用的功能，旨在简化开发、提升效率。
 
 1. **便捷的CRUD操作**
-   MyBatis-Plus通过让Mapper接口继承BaseMapper，内置了一系列通用的CRUD方法。开发者无需手动编写重复的SQL语句，就能实现基本的增删改查操作，大大简化了开发流程。相比之下，MyBatis需要为每种操作单独编写SQL。
+   MyBatis-Plus通过让Mapper接口继承BaseMapper，内置了一系列通用的CRUD方法。大大简化了开发流程。相比之下，MyBatis需要为每种操作单独编写SQL。
 2. **强大的代码生成器**
    MyBatis-Plus提供了一个实用的代码生成工具，只需配置数据库表信息，就能自动生成实体类、Mapper接口、Service层代码。这不仅减少了手动编码的工作量，还能确保代码规范统一。而MyBatis则完全依赖开发者手动创建这些文件。
 3. **丰富的注解支持**
-   MyBatis-Plus引入了更多注解，开发者可以通过这些注解直接在实体类上定义数据库表与Java对象之间的映射关系或者自定义sql等。这样可以减少XML配置文件的编写，甚至在简单场景下完全无需XML。MyBatis虽然也支持注解，但功能较基础，复杂映射仍需依赖XML。
+   MyBatis-Plus引入了更多注解，开发者可以通过这些注解直接在实体类上定义数据库表与Java对象之间的映射关系或者自定义sql等。这样可以减少XML配置文件的编写。MyBatis虽然也支持注解，但功能较基础，复杂映射仍需依赖XML。
 
 
 
@@ -434,7 +433,7 @@ MyBatis-Plus是在MyBatis基础上做了增强，提供了更多开箱即用的�
 ### 1. 了解SpringCloud吗，说一下他和SpringBoot的区别
 
 - **Spring Boot**
-  是一个快速开发框架，旨在简化 Spring 应用的配置和开发。它通过“约定大于配置”、自动配置（Auto-Configuration）和嵌入式服务器，让开发者能快速搭建独立运行的应用程序。
+  是一个快速开发框架，旨在简化 Spring 应用的配置和开发。它通过“约定大于配置”、自动配置和嵌入式服务器，让开发者能快速搭建独立运行的应用程序。
 - **Spring Cloud**
   是一个基于 Spring Boot 构建的微服务架构工具集。它提供了一套解决方案，用于解决分布式系统中常见的挑战，比如服务注册与发现、负载均衡、配置管理、熔断等。
 
@@ -446,9 +445,9 @@ MyBatis-Plus是在MyBatis基础上做了增强，提供了更多开箱即用的�
 
 1. **服务注册与发现**：用于让每个服务启动后会将自身的地址和端口信息注册到注册中心；其他服务要调用它时，通过注册中心获取服务实例的地址，而**不需要固定的地址**。
 
-2. **服务调用**：服务之间的通信方式，可以通过 HTTP（如 RESTful API）或 RPC（远程过程调用）进行服务之间的请求。
+2. **服务调用**：服务之间的通信方式，可以通过 HTTP或 RPC进行服务之间的请求。
 
-3. **负载均衡**：在微服务架构中，通常会有多个相同的服务实例分布在不同的服务器上。负载均衡用于在多个实例间分配请求，避免某个实例过载。
+3. **负载均衡**：在微服务架构中，通常会有多个相同的服务实例分布在不同的服务器上。负载均衡用于将请求分配给多个实例，避免某个实例过载。
 4. **网关**：作为系统的统一入口，负责路由请求、认证授权、限流等。
 5. **熔断与降级**：
    - 熔断：用于防止一个服务的故障传导到其他服务。如果某个服务在短时间内出现大量的错误或响应缓慢，熔断机制会自动切断对该服务的调用，避免对系统造成更大影响。
@@ -487,5 +486,4 @@ MyBatis-Plus是在MyBatis基础上做了增强，提供了更多开箱即用的�
 **服务降级**是分布式系统中的一种容错机制，用来在某些服务不可用或者性能不佳时，自动提供一个简化的或默认的响应，以保证系统的可用性和稳定性。通过服务降级，可以避免在高负载或故障情况下，用户体验的彻底失败，而是提供一个可接受的备用方案或降级服务。
 
 服务降级通常与 **熔断器** 一起使用，当熔断器触发时，服务降级可以起到补充作用，返回一个默认的或预设的响应，防止系统因为部分服务故障而影响整个系统。
-
 
