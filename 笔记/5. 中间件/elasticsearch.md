@@ -426,7 +426,7 @@ GET products/_search
 }
 ```
 
-#### 6. 高亮查询
+#### 6. `高亮`查询
 
 ```bash
 GET /test/_search
@@ -568,7 +568,7 @@ public class ProductController {
 
 ### 六、提示单词
 
-#### 1. 安装pinyin分词器
+#### 1. 安装`pinyin`分词器
 
 ```bash
 // 先下载对应pinyin分词器的压缩包	https://release.infinilabs.com/analysis-pinyin/stable/
@@ -657,7 +657,7 @@ PUT /test
 
 
 
-#### 3. 实现根据关键词补全功能
+#### 3. 实现根据关键词`补全功能`
 
 示例：
 
