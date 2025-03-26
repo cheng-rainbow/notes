@@ -535,6 +535,19 @@ http {
 }
 ```
 
+### 5. nacos
+
+单机启动（用的默认数据库）
+
+```bash
+docker run -d \
+  -p 8848:8848 \
+  -e MODE=standalone \
+  nacos/nacos-server:latest
+```
+
+
+
 
 
 ## 六、Dockerfile
@@ -547,7 +560,7 @@ Dockerfile 是用于**定义 Docker 容器镜像**的文本文件，它包含了
 
 `Dockerfile` 由多条指令组成，每条指令完成特定任务。以下是 Dockerfile 中常用的指令：
 
-#### 1.1 FROM（指定基础镜像）
+1. `FROM`（指定基础镜像）
 
 每个 Dockerfile 必须以 `FROM` 指令开头，它用于指定当前镜像基于哪个基础镜像构建。
 
@@ -557,7 +570,7 @@ FROM ubuntu:20.04
 
 - `ubuntu:20.04` 表示使用 Ubuntu 20.04 作为基础镜像。
 
-#### 1.2 LABEL（添加元数据）
+2. `LABEL`（添加元数据）
 
 `LABEL` 用于给镜像添加元数据，如作者、版本等。
 
@@ -566,7 +579,7 @@ LABEL maintainer="your_name <your_email@example.com>"
 LABEL version="1.0"
 ```
 
-#### 1.3 RUN（执行命令）
+3. `RUN`（执行命令）
 
 `RUN` 指令用于在镜像构建过程中执行命令，如安装软件、修改配置等。
 
@@ -577,7 +590,7 @@ RUN apt-get update && apt-get install -y nginx
 - `apt-get update`：更新包管理器索引。
 - `apt-get install -y nginx`：安装 Nginx。
 
-#### 1.4 COPY（复制文件到镜像）
+4. `COPY`（复制文件到镜像）
 
 `COPY` 指令用于将本地文件复制到镜像中。
 
@@ -590,7 +603,7 @@ COPY index.html .
 
 - `index.html` 是本地文件，复制到 `/usr/share/nginx/html/` 目录下。
 
-#### 1.5 ADD（增强版 COPY）
+5. `ADD`（增强版 COPY）
 
 `ADD` 和 `COPY` 类似，但它支持自动解压 `.tar.gz` 文件和从远程 URL 下载文件。
 
@@ -604,9 +617,9 @@ ADD https://example.com/myfile /tmp/
 
 **注意**：如果不需要 `ADD` 的特性，推荐使用 `COPY`，因为 `COPY` 语义更明确。
 
-#### 1.6 ENV（设置环境变量）
+6. `ENV`（设置环境变量）
 
-`ENV` 用于定义环境变量，供容器内应用程序使用。
+ENV 用于定义环境变量，供容器内应用程序使用。
 
 ```dockerfile
 ENV APP_ENV=production
@@ -616,7 +629,7 @@ ENV PATH="/app/bin:$PATH"
 - `APP_ENV` 变量可以在容器内使用 `echo $APP_ENV` 访问。
 - 修改 `PATH` 变量，使 `/app/bin` 目录中的程序可执行。
 
-#### 1.7 EXPOSE（声明端口）
+7. `EXPOSE`（声明端口）
 
 `EXPOSE` 用于声明容器运行时监听的端口，**但不会直接暴露端口**，需要 `-p` 选项才能映射到主机。
 
@@ -626,7 +639,7 @@ EXPOSE 80
 
 - 这里声明容器应用监听 80 端口。
 
-#### 1.8 WORKDIR（设置工作目录）
+8. `WORKDIR`（设置工作目录）
 
 `WORKDIR` 用于指定之后指令的工作目录。
 

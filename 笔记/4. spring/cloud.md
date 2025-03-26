@@ -28,159 +28,13 @@ Spring Cloud 是一套基于 Spring Boot 的框架集合，用于构建分布式
 ### 7. 分布式配置管理
 分布式配置管理用于集中管理各服务的配置文件，支持动态更新，不需要重启服务。  可以在配置更新后自动推送至各服务节点，使它们能实时更新配置信息，提升了系统的灵活性和一致性。
 
-## 二、前置内容和准备工作
-### 1、 不同服务之间的调用
-下面两个了解其中一个就行
-
-- #### RestTemplate
-
-	`RestTemplate` 是 Spring 提供的一个同步 HTTP 客户端，用于与 RESTful Web 服务进行交互。它支持多种 HTTP 方法，包括 GET、POST、PUT、DELETE 等，简化了调用 REST API 的过程。
-	
-	
-	在微服务架构中，服务之间需要进行通信，`RestTemplate` 通过简单的 HTTP 调用实现这一点。通过服务注册和发现机制，可以动态获取服务的地址和端口。
-	
-
-	配置RestTemplate
-	
-	- 确保 `pom.xml` 文件中包含了 Spring Web 相关的依赖：
-		```xml
-		<dependency>
-		    <groupId>org.springframework.boot</groupId>
-		    <artifactId>spring-boot-starter-web</artifactId>
-		</dependency>
-		```
-	
-	- 创建 RestTemplate Bean
-		在 Spring Boot 应用程序中，通常在配置类中创建一个 `RestTemplate` 的 Bean：
-		```java
-		import org.springframework.context.annotation.Bean;
-		import org.springframework.context.annotation.Configuration;
-		import org.springframework.web.client.RestTemplate;
-		
-		@Configuration
-		public class AppConfig {
-		
-		    @Bean
-		    public RestTemplate restTemplate() {
-		        return new RestTemplate();
-		    }
-		}
-		```
-
-	RestTemplate常用方法
-	
-	
-	- GET 请求
-		```java
-		restTemplate.getForObject(url, String.class);
-		// getForObject(String url, Class<T> responseType)：发起 GET 请求，并返回响应体。
-		```
-	
-	- POST 请求
-		```java
-		restTemplate.postForObject(url, request, MyResponseObject.class);
-		// postForObject(String url, Object request, Class<T> responseType)：发起 POST 请求，将请求体发送给指定 URL，并返回响应体。
-		```
-	
-	- PUT 请求
-		```java
-		restTemplate.put(url, request);
-		// put(String url, Object request)：发起 PUT 请求，将请求体发送到指定 URL。
-		```
-	
-	
-	- DELETE 请求
-		```java
-		restTemplate.delete(url);
-		// delete(String url)：发起 DELETE 请求。
-		```
-	
-- #### OpenFeign 
-
-	**Feign** 是一个声明式的 Web 服务客户端，它简化了与 HTTP 服务交互的方式。使得开发人员能够通过简单的注解方式调用 RESTful Web 服务，而不需要手动编写繁琐的 HTTP 请求代码。(RestTemplate和这个了解一种即可)
-	
-	
-	
-	
-	引入依赖
-	- 如果在使用 Spring Cloud，可以在你的 `pom.xml` 中加入 Feign 相关的依赖：
-	
-		```xml
-		<dependency>
-		    <groupId>org.springframework.cloud</groupId>
-		    <artifactId>spring-cloud-starter-openfeign</artifactId>
-		</dependency>
-		```
-	
-	- 启用 Feign：
-	在 Spring Boot 应用的主类或者配置类中添加 `@EnableFeignClients` 注解，启用 Feign 客户端：
-	
-		```java
-		import org.springframework.cloud.openfeign.EnableFeignClients;
-		import org.springframework.boot.SpringApplication;
-		import org.springframework.boot.autoconfigure.SpringBootApplication;
-		
-		@SpringBootApplication
-		@EnableFeignClients  // 启用 Feign 客户端
-		public class MyApplication {
-		    public static void main(String[] args) {
-		        SpringApplication.run(MyApplication.class, args);
-		    }
-		}
-		```
-	
-	- 定义 Feign 接口：
-	Feign 使用接口定义 HTTP 请求。通过注解指定请求的类型和路径：
-	
-		```java
-		import org.springframework.cloud.openfeign.FeignClient;
-		import org.springframework.web.bind.annotation.GetMapping;
-		import org.springframework.web.bind.annotation.RequestParam;
-		
-		@FeignClient(name = "account-service")  // 指定服务名称, 这里是指注册到naocs的服务名
-		public interface AccountClient {
-		
-		    @GetMapping("/account/balance")
-		    String getBalance(@RequestParam("userId") String userId);
-		}
-		```
-		
-		在上面的例子中：
-		- `@FeignClient(name = "account-service")` 表示 Feign 客户端将向名为 `account-service` 的服务发起请求。
-		- `@GetMapping("/account/balance")` 表示该方法会向 `/account/balance` 路径发送 GET 请求，并返回响应。
-	
-	- 调用 Feign 客户端：
-		在其他服务中调用 Feign 客户端接口，就像调用本地方法一样：
-		
-		```java
-		import org.springframework.beans.factory.annotation.Autowired;
-		import org.springframework.web.bind.annotation.RequestMapping;
-		import org.springframework.web.bind.annotation.RestController;
-		
-		@RestController
-		public class OrderController {
-		
-		    @Autowired
-		    private AccountClient accountClient;
-		
-		    @RequestMapping("/order/test")
-		    public String createOrder(String userId) {
-		        // 调用 Feign 客户端方法
-		        String balance = accountClient.getBalance(userId);
-		        return "Account balance: " + balance;
-		    }
-		}
-		```
+## 二、引入springcloud依赖
 
 
 
+### 1. dependencyManagement
 
-
-### 2、 准备工作（引入spring cloud依赖）
-
-#### 2.1 dependencyManagement
-
-`dependencyManagement` 是 Maven 构建工具中的一个元素，用于定义项目中依赖的管理方式。它允许我们在父 POM 文件或依赖管理部分中集中声明依赖的版本号和作用范围，所有子模块（子项目）可以自动继承这些声明，而不需要在每个子模块的 `pom.xml` 中重复定义。
+`dependencyManagement` 是 Maven 构建工具中的一个元素，用于定义项目中依赖的管理方式。
 
 
 1. **统一依赖版本管理：**  
@@ -191,105 +45,147 @@ Spring Cloud 是一套基于 Spring Boot 的框架集合，用于构建分布式
 
 根项目 pom 文件
 ```xml
-<packaging>pom</packaging>
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
 
-<dependencyManagement>
-       <dependencies>
-           <!-- https://mvnrepository.com/artifact/org.springframework.cloud/spring-cloud-dependencies -->
-           <dependency>
-               <groupId>org.springframework.cloud</groupId>
-               <artifactId>spring-cloud-dependencies</artifactId>
-               <version>2023.0.3</version>
-               <type>pom</type>
-               <scope>import</scope>
-           </dependency>
-           <!-- https://mvnrepository.com/artifact/com.alibaba.cloud/spring-cloud-alibaba-dependencies -->
-           <dependency>
-               <groupId>com.alibaba.cloud</groupId>
-               <artifactId>spring-cloud-alibaba-dependencies</artifactId>
-               <version>2023.0.1.3</version>
-               <type>pom</type>
-               <scope>import</scope>
-           </dependency>
-       </dependencies>
-   </dependencyManagement>
+    <groupId>com.example</groupId>
+    <artifactId>dubbo-parent</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <properties>
+        <java.version>17</java.version>
+        <spring-boot.version>3.2.5</spring-boot.version>
+        <spring-cloud.version>2023.0.3</spring-cloud.version>
+        <spring-cloud-alibaba.version>2023.0.1.3</spring-cloud-alibaba.version>
+    </properties>
+
+    <!-- 添加 dependencyManagement 并导入依赖 -->
+    <dependencyManagement>
+        <dependencies>
+            <!-- Spring Boot 版本管理 -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!-- Spring Cloud 版本管理 -->
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!-- Spring Cloud Alibaba 版本管理 -->
+            <dependency>
+                <groupId>com.alibaba.cloud</groupId>
+                <artifactId>spring-cloud-alibaba-dependencies</artifactId>
+                <version>${spring-cloud-alibaba.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+    </dependencyManagement>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+    <modules>
+        <module>Consumer</module>
+    </modules>
+</project>
 ```
 
 子项目 pom 文件
 
 ```xml
-<parent>
-    <groupId>com.cloud</groupId>
-    <artifactId>learnCloudAlibaba</artifactId>
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.example</groupId>
+        <artifactId>dubbo-parent</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath> <!-- 指向父模块的POM文件 -->
+    </parent>
+
+    <artifactId>Proverder</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <relativePath>../pom.xml</relativePath>
-</parent>
+    <name>Proverder</name>
+    <description>Proverder</description>
 
-<!-- 下面这个是我根项目的pom文件的内容, 要确保上面子项目中 parent 中的 groupid artifactId version 跟下面 根项目的一致-->
-<!--    <groupId>com.cloud</groupId>-->
-<!--    <artifactId>learnCloudAlibaba</artifactId>-->
-<!--    <version>0.0.1-SNAPSHOT</version>-->
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+		<dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+        </dependency>
+    </dependencies>
+</project>
 ```
-
-#### 2.2 引入依赖 spring Cloud
 
 [maven官网](https://mvnrepository.com/)
 
 - `Spring Cloud Dependencies`
 ![在这里插入图片描述](./../../../笔记/笔记图片/ec1575eac380470db52dc41f2a0c6698.png)
 
-#### 2.3 引入依赖 spring Cloud alibaba
-
 - `spring-cloud-alibaba-dependencies`
 ![在这里插入图片描述](./../../../笔记/笔记图片/b193dc266b6b4f19a7b015d75d952af4.png)
 
-#### 2.4 版本兼容性问题
+### 2. 版本兼容性问题
 
 - 参考文章 [地址](https://github.com/alibaba/spring-cloud-alibaba/blob/2023.x/README-zh.md)
 ![在这里插入图片描述](./../../../笔记/笔记图片/3270c7b52d494b38858c3a55e3594378.png)
 这里我引入的是 springcloud 2023 , springcloudalibaba 2023, springboot 3.2, jdk 17
 
----
-下面讲解一下每个主要功能模块的部署和配置
+
+
 ## 三、服务注册与发现 nacos
 
-### 1. 准备工作
+### 1. 配置
 
-- 下载 nacos 本地服务 	([地址](https://github.com/alibaba/nacos/releases))
-![在这里插入图片描述](./../../../笔记/笔记图片/52a2f40e25af4ca79e694f64d1ac15a0.png)
+1. 添加依赖到子模块
 
-
-
-
-- 添加依赖到子模块
-
-	在需要被nacos注册的模块中加入下面配置，启动项目即可在 `localhost:8848/nacos` 中查看到已经被注册到中央注册中心
-	```xml
-	<!-- Nacos 服务注册和发现 -->
-	 <dependency>
-	     <groupId>com.alibaba.cloud</groupId>
-	     <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
-	 </dependency>
-	```
-- 简单配置
-	```xml
-	spring.cloud.nacos.discovery.server-addr=localhost:8848
-	```
-- 在启动类上加上`@EnableDiscoveryClient`注解
-	 `@EnableDiscoveryClient` 是一个注解，用于启用服务注册与发现功能，通常在使用 Spring Cloud 和 Nacos 的服务中添加。它告诉 Spring Boot 应用要注册到服务注册中心，以便其他服务能够发现它。
-
-### 2. 以单例启动
-
-解压进入nacos的 bin目录，以单例模式启动
-```bash
-.\startup.cmd -m standalone
-
-# localhost:8848/nacos 进行访问, 默认账号密码都是 nacos
+在需要被nacos注册的模块中加入下面配置，
+```xml
+<!-- Nacos 服务注册和发现 -->
+ <dependency>
+     <groupId>com.alibaba.cloud</groupId>
+     <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+ </dependency>
 ```
 
-### 3. 常见配置
+2. 简单配置
 
-```java
+```properties
+spring.cloud.nacos.discovery.server-addr=localhost:8848
+
+# 下面是其他常见配置
+
 spring.cloud.nacos.discovery.namespace=命名空间id # 指定命令空间, 不同空间下的实例不可互相访问
 spring.cloud.nacos.discovery.group=DEFAULT_GROUP # 默认是DEFAULT_GROUP，指定group，不同group下的实例不可互相访问
 spring.cloud.nacos.discovery.cluster-name=BeiJing # 指定当前实例是哪个集群，一般按照地区划分，讲请求发送距离近的实例
@@ -297,7 +193,24 @@ spring.cloud.loadbalancer.nacos.enabled=true # 开启 优先向跟当前发送�
 spring.cloud.nacos.discovery.weight=1 # 当前实例的权值，权值在1-100，默认是1，权值越大越容易接收请求，一般给配置高的服务器权值高一些
 ```
 
-### 4. Nacos 集群架构
+3. 在启动类上加上`@EnableDiscoveryClient`注解
+   `@EnableDiscoveryClient` 是一个注解，启动项目即可在 `localhost:8848/nacos` 中查看到已经被注册到中央注册中心
+
+
+
+### 2. 以单例启动
+
+解压进入nacos的 bin目录，以单例模式启动（通过docker）
+```bash
+docker run -d \
+  -p 8848:8848 \
+  -e MODE=standalone \
+  nacos/nacos-server:latest
+```
+
+
+
+### 3. Nacos 集群架构
 
 对于 Nacos 集群，主要的作用是 **实现高可用和数据一致性**，保证服务注册和配置管理的可靠性。
 
@@ -316,81 +229,20 @@ spring.cloud.nacos.discovery.weight=1 # 当前实例的权值，权值在1-100�
 
 可以通过nginx反向代理，实现只暴漏一个nacos服务地址，nginx内容实现负载均衡
 也可以通过loadbalancer或是在 application 中添加集群的所有地址实现简单的负载均衡
+
 ```java
 # 会选其中一个地址注册服务
 spring.cloud.nacos.discovery.server-addr: 172.20.10.2:8870,172.20.10.2:8860,172.20.10.2:8848
 ```
-### 5. 集群模式部署
-
-
-1. **配置数据库**
-
-   Nacos 集群需要一个共享的数据库来存储配置信息。可以使用 MySQL 作为存储引擎。
-
-   - 在 MySQL 中创建一个数据库：
-
-     ```sql
-     CREATE DATABASE nacos_config;
-     ```
-
-   - 进入mysql，执行 Nacos 提供的 SQL 脚本：
-
-     ```bash
-     mysql> use nacos_config;
-     Database changed
-     mysql> source D:\kafka\nacos\conf\mysql-schema.sql
-     ```
-
-4. **配置 Nacos 集群**
-
-   打开每个节点的 `conf/application.properties` 文件，进行以下配置：
-	```java
-	server.port=8848 
-	spring.datasource.platform=mysql
-	spring.sql.init.platform=mysql
-	### Count of DB:
-	db.num=1
-	db.url.0=jdbc:mysql://127.0.0.1:3306/nacos_cofig?characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useUnicode=true&useSSL=false&serverTimezone=UTC
-	db.user.0=root
-	db.password.0=password
-	```
-   打开每个节点的 `conf/cluster.conf` 文件，进行以下配置：
-	```java
-	172.20.10.2:8848 # 前面是ip地址，内网的或是公网的
-	172.20.10.2:8860
-	172.20.10.2:8870
-	```
-	~~一些坑~~
-	这里我要在本地启动三个nacos，那就需要复制 `nacos` 文件夹，然后分别修改里面的 `application.properties` 和 `cluster.conf` 的配置文件，其中 `server.port=8848 ` 端口之间不要离太近。（离太近nacos 2.0 版本会出问题）这里弄成了 8848, 8860, 8870 端口
-![在这里插入图片描述](./../../../笔记/笔记图片/63a2bfef27334a6082da9f572b215e07.png)
-
-
-5. **启动 Nacos 实例**
-
-   在每台服务器上启动 Nacos 服务。执行以下命令：
-
-   ```bash
-   .\startup.cmd -m cluster
-   ```
-
-   注意：每个节点启动时，`cluster.conf` 文件中需要列出所有节点的 IP 和端口。
-
-
-
-
----
-
 
 
 
 ## 四、服务调用和负载均衡 LoadBalancer
 
-`Spring Cloud LoadBalancer` 是 Spring Cloud 中的一个负载均衡模块，用于在服务调用时实现客户端负载均衡。
+`Spring Cloud LoadBalancer` 是 Spring Cloud 中的一个客户端负载均衡模块，用于在服务调用者和多个实例之间分配流量。它通过服务发现（比如使用 Nacos）获取可用服务实例的列表，并根据不同的负载均衡策略（如轮询、随机等）选择一个实例进行请求分发。
 
-### 1. 基本概念
-Spring Cloud LoadBalancer 通过客户端负载均衡，在服务调用者和多个实例之间分配流量。它通过服务发现（比如使用 Nacos）获取可用服务实例的列表，并根据不同的负载均衡策略（如轮询、随机等）选择一个实例进行请求分发。
+### 1. 配置环境
 
-### 2. 配置环境
 在项目中使用 `Spring Cloud LoadBalancer`，在每个需要使用客户端负载均衡功能的子模块中添加：
 
 ```xml
@@ -405,11 +257,11 @@ Spring Cloud LoadBalancer 通过客户端负载均衡，在服务调用者和多
 spring.cloud.loadbalancer.configurations=default
 ```
 
-### 3. 负载均衡的使用方式
+### 2. 负载均衡的使用方式
 
 Spring Cloud LoadBalancer 支持使用 `RestTemplate` 、`WebClient` 、`OpenFeign ` 进行负载均衡。
 
-#### 3.1 使用 `RestTemplate`
+#### 2.1 使用 `RestTemplate`
 
 1. **定义 RestTemplate Bean** 并标注 `@LoadBalanced` 注解：
    
@@ -438,59 +290,11 @@ Spring Cloud LoadBalancer 支持使用 `RestTemplate` 、`WebClient` 、`OpenFei
         return restTemplate.getForObject("http://module2/api/v1/data", String.class);
     }
     ```
-### 4. 测试 负载均衡
-
-假设我们有一个根模块, 根模块下面有三个模块 module1，module2，module3。module2 和 module3 我们在本地的不同端口各启动两个（模拟分布式）。当我们通过module1调用 module2 和 module3 的方法，观察请求的分布
-
-- #### 将多个实例注册到nacos
-	
-	这里演示的nacos用的单例模式，最终效果如下图
-	![在这里插入图片描述](./../../../笔记/笔记图片/d273f83176094866b7680b3ea644a764.png)
-	下面是如何启动让module2和module3分别启动两个实例
-	![在这里插入图片描述](./../../../笔记/笔记图片/c6ad47e788364e0f87361a282cbe6645.png)
-	![在这里插入图片描述](./../../../笔记/笔记图片/c6bf0eaceb0f47188347672cf42a0807.png)
 
 
 
+### 3. 使用不同的负载均衡器
 
-- #### 查看请求分布
-	
-	三个module中的demo代码
-	module1 中，通过get方法访问 `/test` 时，会向 module2 和 module3 的实例发送请求。（spring cloud loadbalancer 会根据配置实现负载均衡）
-	```java
-	@Autowired
-	    RestTemplate restTemplate;
-	
-	    @GetMapping("/test")
-	    public String test() {
-	        String module2 = restTemplate.getForObject("http://module2/api/test", String.class);
-	        String module3 = restTemplate.getForObject("http://module3/api/test", String.class);
-	        return module2 + "\n" + module3;
-	    }
-	```
-	module2 中
-	```java
-	@GetMapping("/api/test")
-	    public String test() {
-	        System.out.println("module2 test");
-	        return "module2 test";
-	    }
-	```
-	
-	module3 中
-	```java
-	@GetMapping("/api/test")
-	    public String test() {
-	        System.out.println("module3 test");
-	        return "module3 test";
-	    }
-	```
-	当我们在浏览器访问 16 次 `/test` 的时候, `restTemplate.getForObject` 会向对应的module发送16次请求。观察module2的两个实例和module3的两个实例可以看到 分别接收到了 8 次请求（默认是轮询）。如下图
-	![在这里插入图片描述](./../../../笔记/笔记图片/b8f852455e3d41dbb1f67eac51e144ba.png)
-	![在这里插入图片描述](./../../../笔记/笔记图片/13a9b2a2a84445c1a5e5ae9e7833fb00.png)
-	![在这里插入图片描述](./../../../笔记/笔记图片/01de4bdd868543b69d2304167ecb858a.png)
-	![在这里插入图片描述](./../../../笔记/笔记图片/5014e4ea43f4470b9f4bc749c094db3e.png)
-### 5. 使用不同的负载均衡器
 上面的配置是所有服务都是用默认的负载均衡器，即轮询的负载均衡器。下面讲一下怎么让不同服务使用不同的负载均衡器
 
 - 创建两个配置文件，把轮询负载均衡器和随机负载均衡器注册为bean
@@ -538,6 +342,8 @@ Spring Cloud LoadBalancer 支持使用 `RestTemplate` 、`WebClient` 、`OpenFei
 	    }
 	}
 	```
+
+
 
 
 ## 五、分布式事务 seata
@@ -660,8 +466,9 @@ Seata 由阿里巴巴发起，最初的目的是为了解决微服务场景下�
 最终效果如下
 ![在这里插入图片描述](./../../../笔记/笔记图片/03c1b7ff52024fab80c47167a34c7668.png)
 
-
 创建三个模块(account, order, storage)，加入相关依赖(数据库驱动，mybatis...)，然后按照下面加入 `nacos` 和 `seata` 依赖和配置
+
+
 
 ### 3. Seata 与 Spring Boot 集成
 
@@ -704,12 +511,14 @@ seata:
 
 `@GlobalTransactional` 是 Seata 提供的注解，用于实现分布式事务的管理。它是 Seata 的全局事务控制器，通过这个注解，你可以在一个跨多个微服务的操作中，确保数据的一致性和事务的回滚。
 
-##### 1. 作用：
-- **开启全局事务**：使用 `@GlobalTransactional` 注解可以标记方法为全局事务，Seata 会在这个方法执行时开启一个全局事务。
-- **事务的提交与回滚**：在方法执行过程中，如果发生异常，Seata 会自动回滚所有与该全局事务相关的子事务。相反，如果方法执行成功，Seata 会提交所有子事务。
-  
+1. 作用：
 
-##### 2. 基本语法：
+   - **开启全局事务**：使用 `@GlobalTransactional` 注解可以标记方法为全局事务，Seata 会在这个方法执行时开启一个全局事务。
+
+   - **事务的提交与回滚**：在方法执行过程中，如果发生异常，Seata 会自动回滚所有与该全局事务相关的子事务。相反，如果方法执行成功，Seata 会提交所有子事务。
+
+
+2. 基本语法：
 
 ```java
 @GlobalTransactional(name = "your-global-tx-name", rollbackFor = Exception.class)
@@ -718,56 +527,12 @@ public void yourMethod() {
 }
 ```
 
-##### 3. 参数：
+3.  参数：
 
-- `name`：指定全局事务的名称，通常为了区分不同的事务，可以给它一个有意义的名字。
-- `rollbackFor`：指定哪些异常类型会导致事务回滚，默认是 `RuntimeException` 和 `Error`，如果需要捕获其他异常，可以通过此参数指定。
+   - `name`：指定全局事务的名称，通常为了区分不同的事务，可以给它一个有意义的名字。
 
-### 4. 演示流程
+   - `rollbackFor`：指定哪些异常类型会导致事务回滚，默认是 `RuntimeException` 和 `Error`，如果需要捕获其他异常，可以通过此参数指定。
 
-下面是通过访问 order 订单服务，然后执行 `创建新的订单`-> `扣除用户支付的钱` -> `减去用户购买商品的数量更新商品库存`
-
-```java
-@RestController
-public class CreateOrderController {
-
-    @Autowired
-    OrderMapper orderMapper;
-
-    @Autowired
-    RestTemplate restTemplate;
-
-    @RequestMapping("/order/test")
-    @GlobalTransactional(name = "create-order", rollbackFor = Exception.class)
-    public String createOrder(@RequestParam String userId,
-                              @RequestParam String commodityCode,
-                              @RequestParam Integer count,
-                              @RequestParam Integer money
-    ) {
-        // 创建订单
-        Order order = new Order(null, userId, commodityCode, count, money);
-        orderMapper.insert(order);
-
-        // 扣除账户余额
-        Map<String, String> mp1 = new HashMap<>();
-        mp1.put("userId", userId);
-        mp1.put("money", money.toString());
-        String resp1 = restTemplate.postForObject("http://localhost:8001/account/test", mp1, String.class);
-
-        // 减去用户购买商品数量，更新库存
-        Map<String, String> mp2 = new HashMap<>();
-        mp2.put("commodityCode", commodityCode);
-        mp2.put("count", count.toString());
-        String resp2 = restTemplate.postForObject("http://localhost:8003/storage/test", mp2, String.class);
-
-        if ("ok".equals(resp1) && "ok".equals(resp2)) {
-            return "ok";
-        }
-        return "error";
-    }
-}
-```
-如果在调用其他服务时（扣除账户余额，更新库存时），如果抛出异常的话，整个事务就会回滚。比如`减去用户购买商品数量`时发现库存不足，抛出异常，整个事务回滚，之前的`创建订单`和`扣除账户余额`都会回滚
 
 
 
