@@ -5,32 +5,40 @@ Spring Cloud 是一套基于 Spring Boot 的框架集合，用于构建分布式
 
 ## 一、相关功能的介绍
 
-### 1. 服务注册与发现
+1. `服务注册与发现`
+
 **服务注册**：服务注册与发现用于让各个服务在启动时自动注册到一个中央注册中心（如 Nacos、Eureka），并且能让其他服务通过注册中心找到并调用它们的地址。  
 **发现**：每个服务启动后会将自身的地址和端口信息注册到注册中心；其他服务要调用它时，通过注册中心获取服务实例的地址，而**不需要固定的地址**。
 
-### 2. 服务调用和负载均衡
+2. `分布式配置管理`
+
+分布式配置管理用于集中管理各服务的配置文件，支持动态更新，不需要重启服务。  可以在配置更新后自动推送至各服务节点，使它们能实时更新配置信息，提升了系统的灵活性和一致性。
+
+3. `服务调用和负载均衡`
 
 **服务调用**：服务之间的通信方式，可以通过 HTTP（如 RESTful API）或 RPC（远程过程调用）进行服务之间的请求。  
 **负载均衡**：在微服务架构中，通常会有多个相同的服务实例分布在不同的服务器上。负载均衡用于在多个实例间分配请求，常见的策略有轮询、随机、最小连接数等，从而提升系统的处理能力和容错性。
 
-### 3. 分布式事务
+3. `分布式事务`
+
 分布式事务用于保证多个服务在处理同一个业务操作时的一致性。例如，用户下单时，需要支付服务和库存服务同时完成，如果某一方失败，整个操作需要回滚。  
 
-### 4. 服务熔断和降级
+4. `服务熔断和降级`
+
 **服务熔断**：用于防止一个服务的故障传导到其他服务。如果某个服务在短时间内出现大量的错误或响应缓慢，熔断机制会自动切断对该服务的调用，避免对系统造成更大影响。  
 **服务降级**：在服务出现问题时，提供降级策略，比如返回默认值或简化响应内容，使系统能够在部分服务不可用的情况下继续运行。
 
-### 5. 服务链路追踪
+5. `服务链路追踪`
+
 服务链路追踪用于跟踪分布式系统中一次请求的完整路径，分析其跨多个服务的执行情况，方便发现延迟或错误。  
-### 6. 服务网关
+
+6. `服务网关`
+
 服务网关作为服务的统一入口，处理所有外部请求，提供认证授权、负载均衡、路由分发、监控等功能。它还能对请求进行限流、熔断、降级等保护。  
-### 7. 分布式配置管理
-分布式配置管理用于集中管理各服务的配置文件，支持动态更新，不需要重启服务。  可以在配置更新后自动推送至各服务节点，使它们能实时更新配置信息，提升了系统的灵活性和一致性。
+
+
 
 ## 二、引入springcloud依赖
-
-
 
 ### 1. dependencyManagement
 
@@ -137,10 +145,6 @@ Spring Cloud 是一套基于 Spring Boot 的框架集合，用于构建分布式
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-        <dependency>
             <groupId>com.alibaba.cloud</groupId>
             <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
         </dependency>
@@ -183,11 +187,10 @@ Spring Cloud 是一套基于 Spring Boot 的框架集合，用于构建分布式
 
 ```properties
 spring.cloud.nacos.discovery.server-addr=localhost:8848
-
-# 下面是其他常见配置
-
 spring.cloud.nacos.discovery.namespace=命名空间id # 指定命令空间, 不同空间下的实例不可互相访问
 spring.cloud.nacos.discovery.group=DEFAULT_GROUP # 默认是DEFAULT_GROUP，指定group，不同group下的实例不可互相访问
+
+# 下面是其他常见配置
 spring.cloud.nacos.discovery.cluster-name=BeiJing # 指定当前实例是哪个集群，一般按照地区划分，讲请求发送距离近的实例
 spring.cloud.loadbalancer.nacos.enabled=true # 开启 优先向跟当前发送请求的实例 在同一集群的实例发送请求
 spring.cloud.nacos.discovery.weight=1 # 当前实例的权值，权值在1-100，默认是1，权值越大越容易接收请求，一般给配置高的服务器权值高一些
@@ -202,10 +205,13 @@ spring.cloud.nacos.discovery.weight=1 # 当前实例的权值，权值在1-100�
 
 解压进入nacos的 bin目录，以单例模式启动（通过docker）
 ```bash
-docker run -d \
-  -p 8848:8848 \
-  -e MODE=standalone \
-  nacos/nacos-server:latest
+docker run -d --name nacos \
+    -p 8848:8848 \
+    -p 9848:9848 \
+    -p 9849:9849 \
+    -p 7848:7848 \
+    -e MODE=standalone \
+    nacos/nacos-server:v2.3.2
 ```
 
 
@@ -218,8 +224,7 @@ docker run -d \
    Nacos 集群通常包含多个节点，部署在不同的机器或虚拟机上，以提供服务注册、配置管理的冗余和高可用性。当一个节点发生故障时，其他节点可以继续提供服务，从而保证系统的稳定运行。
 
 -  **数据一致性（RAFT 协议）**
-   Nacos 集群内部使用 **RAFT 协议** 来实现服务数据的强一致性。这种一致性保证了同一服务的多个实例在集群中都能被正确地注册和发现。（在集群中的任意以nacos中注册，即可被整个集群的nacos访问）
-   
+   Nacos 集群内部使用 **RAFT 协议** 来实现服务数据的强一致性。这种一致性保证了同一服务的多个实例在集群中都能被正确地注册和发现。（在集群中的任意一个nacos中注册，即可被整个集群的nacos访问）
    - **Leader 选举**：在 Nacos 集群中，一个节点会被选举为 Leader，其它节点作为 Follower。Leader 负责处理写请求并同步数据到 Follower 节点。
    - **数据同步**：当服务实例的注册、注销或配置变更等写请求发生时，Leader 会将数据同步到所有 Follower，确保数据在集群中的一致性。
    
@@ -237,13 +242,92 @@ spring.cloud.nacos.discovery.server-addr: 172.20.10.2:8870,172.20.10.2:8860,172.
 
 
 
-## 四、服务调用和负载均衡 LoadBalancer
+
+
+## 四、分布式配置管理 nacos
+
+分布式配置管理功能的主要作用是在不同的服务之间**集中管理和统一分发配置**。这使得系统在配置变更时无需重启服务，可以实时更新配置，从而达到快速响应的效果。
+
+### 1. 基本概念
+
+- **Data ID（数据 ID）**：表示每个配置的唯一标识。在 Nacos 中，一个配置项通常用 Data ID 表示，通常为字符串形式，代表唯一的配置文件名。
+
+- **Group（组）**：用于将不同的配置项进行分组管理，方便区分开发、测试、生产环境等场景。
+
+- **Namespace（命名空间）**：用于逻辑隔离配置数据。不同命名空间内的配置是互相隔离的，这在多租户场景中非常有用。
+
+- **配置项**：每个具体的配置信息称为配置项，可以是一个或多个键值对。
+
+
+
+### 2. 引入 Nacos 配置管理
+
+1. **引入依赖**
+
+   ```xml
+   <dependency>
+       <groupId>org.springframework.cloud</groupId>
+       <artifactId>spring-cloud-starter-bootstrap</artifactId>
+   </dependency>
+   <!--这里需要指定一个版本，我用默认的不行, 无法从配置中心获取配置-->
+   <dependency>
+       <groupId>com.alibaba.cloud</groupId>
+       <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
+       <version>2023.0.1.2</version>
+   </dependency>
+   ```
+
+   创建一个 bootstrap.yaml 的文件
+
+   ```yaml
+   spring:
+     application:
+       name: module1
+     profiles:
+       active: dev
+   
+     cloud:
+       nacos:
+         config:
+           server-addr: 192.168.227.128:8848 # 服务地址
+           file-extension: yaml
+           namespace: public
+           group: DEFAULT_GROUP
+           name: module1-dev	# 手动指定配置文件名，module1-dev.yaml
+   ```
+
+   data_id 一般命名采用 `application.name`-`profiles.active`.`filex-extension`，根据上面的配置，我的dataid就是 module1-dev.yaml
+   ![在这里插入图片描述](./../../../笔记/笔记图片/7270be8d65044c86aaa0ca506ecf282d.png)
+
+2. **获取配置**
+   可以使用 Spring Boot 的 `@Value` 注解来获取 Nacos 中的配置项，使用 `@RefreshScope` 注解，自动刷新配置：(当我们配置中心修改时，不需要重启项目，hello 就会自动更新)
+
+   ```java
+   @RestController
+   @RefreshScope
+   public class TestController {
+   
+       @Value("${hello}")
+       private String hello;
+   
+       @GetMapping("/nacos/config")
+       public String nacosConfig() {
+           return hello;
+       }
+   }
+   ```
+
+ **Nacos 配置中心优先级高于本地配置，最终生效的是 Nacos 的配置**。
+
+
+
+## 五、服务调用和负载均衡 LoadBalancer
 
 `Spring Cloud LoadBalancer` 是 Spring Cloud 中的一个客户端负载均衡模块，用于在服务调用者和多个实例之间分配流量。它通过服务发现（比如使用 Nacos）获取可用服务实例的列表，并根据不同的负载均衡策略（如轮询、随机等）选择一个实例进行请求分发。
 
 ### 1. 配置环境
 
-在项目中使用 `Spring Cloud LoadBalancer`，在每个需要使用客户端负载均衡功能的子模块中添加：
+在`调用者`项目中添加  `Spring Cloud LoadBalancer`
 
 ```xml
 <dependency>
@@ -259,9 +343,7 @@ spring.cloud.loadbalancer.configurations=default
 
 ### 2. 负载均衡的使用方式
 
-Spring Cloud LoadBalancer 支持使用 `RestTemplate` 、`WebClient` 、`OpenFeign ` 进行负载均衡。
-
-#### 2.1 使用 `RestTemplate`
+Spring Cloud LoadBalancer 支持使用 `RestTemplate` 、`WebClient` 、`OpenFeign ` 进行负载均衡。这里我们使用的是RestTemplate
 
 1. **定义 RestTemplate Bean** 并标注 `@LoadBalanced` 注解：
    
@@ -269,6 +351,7 @@ Spring Cloud LoadBalancer 支持使用 `RestTemplate` 、`WebClient` 、`OpenFei
     @Configuration
     public class AppConfig {
         
+        // 我们同一个服务名称一般会有多个实例, 通过带有 `@LoadBalanced`注解的 `RestTemplate` 可以实现负载均衡, 让请求根据我们的配置分别发送到不同的实例
         @Bean
         @LoadBalanced  // 启用 RestTemplate 的负载均衡
         public RestTemplate restTemplate() {
@@ -279,8 +362,7 @@ Spring Cloud LoadBalancer 支持使用 `RestTemplate` 、`WebClient` 、`OpenFei
     
 2. **发起请求**
    使用 `@LoadBalanced` 的 `RestTemplate` 时，可以直接通过服务名称调用服务，而不需要手动指定服务的 IP 地址和端口，避免了ip和端口写死, 只向一个实例发送请求的情况。
-   （我们同一个服务名称一般会有多个实例(分布式), 通过带有 `@LoadBalanced`注解的 `RestTemplate` 可以实现负载均衡, 让请求根据我们的配置分别发送到不同的实例）
-
+   
     ```java
     @Autowired
     private RestTemplate restTemplate;
@@ -295,7 +377,7 @@ Spring Cloud LoadBalancer 支持使用 `RestTemplate` 、`WebClient` 、`OpenFei
 
 ### 3. 使用不同的负载均衡器
 
-上面的配置是所有服务都是用默认的负载均衡器，即轮询的负载均衡器。下面讲一下怎么让不同服务使用不同的负载均衡器
+上面的配置是所有服务都是用默认的负载均衡器，即轮询的负载均衡器。我们也可以让调用不同的服务，使用不同的负载均衡器
 
 - 创建两个配置文件，把轮询负载均衡器和随机负载均衡器注册为bean
 	```java
@@ -342,6 +424,288 @@ Spring Cloud LoadBalancer 支持使用 `RestTemplate` 、`WebClient` 、`OpenFei
 	    }
 	}
 	```
+
+
+
+## 六、服务网关 gateway
+
+Gateway（网关）是微服务架构中的一个重要组件，它通常用作客户端和多个微服务之间的中介，负责请求的路由、负载均衡、认证、限流、安全控制等功能。它通常部署在前端，起到了“入口”作用，是微服务的前端统一访问点。
+
+**Spring Cloud Gateway** 基于 **WebFlux + Netty + Reactor**，可以更高效地处理大量请求，适用于微服务架构。
+
+### 1. 网关的核心功能
+
+网关的核心职责是将外部请求路由到相应的微服务，同时提供一些重要的功能：
+
+- **请求路由：** 网关根据请求的路径、请求头、参数等信息，将请求转发到对应的微服务。
+- **负载均衡：** 网关能够实现请求的负载均衡，将请求分发到多个后端服务实例，提升服务的可用性和性能。
+- **安全性：** 网关通常是整个系统的第一道防线，可以进行请求的身份验证、授权控制、加密等。
+- **服务发现：** 通过与服务注册中心集成，网关可以动态地获取微服务的实例信息，实现动态路由。
+- **过滤器：** 允许在请求处理过程中添加自定义逻辑。过滤器分为“全局过滤器”和“局部过滤器”。
+- **动态路由：** 可以动态添加路由规则，无需重新启动网关。
+
+### 2. 准备工作
+
+使用gateway的模块不能引入 `spring-boot-starter-web`，Spring MVC（基于 Servlet） 和 Spring Cloud Gateway（基于 WebFlux）会冲突。
+
+- 引入依赖
+
+  ```xml
+  <!-- gateway 依赖 -->
+  <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-gateway</artifactId>
+  </dependency>
+  <!-- 需要基于注册中心转发请求的话，加上 nacos 依赖 -->
+  <dependency>
+     <groupId>com.alibaba.cloud</groupId>
+      <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+  </dependency>
+  <!-- 如果用到 lb: 的话需要在引入getaway的pom中引入loadbalancer -->
+  <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-loadbalancer</artifactId>
+  </dependency>
+  ```
+
+- 配置路由规则：
+
+  ```yaml
+  server:
+    port: 8002
+  
+  spring:
+    application:
+      name: gateway
+    cloud:
+      nacos:
+        discovery:
+          server-addr: localhost:8848
+  
+      gateway:
+        routes: # 网关的路由规则
+          - id: module1 # 路由的唯一标识，可以随意命名,仅用于区分不同的路由规则。
+            uri: lb://module1 # 表示使用负载均衡，将请求转发给注册中心的 module1 服务实例。
+            predicates: # 断言规则，表示请求的路径必须以 /module1 开头。
+              - Path=/module1/**
+            filters: # 用于修改请求或响应，这里的 AddRequestHeader 过滤器会给请求添加一个请求头, test: hello world
+              - AddRequestHeader=test, hello world
+  ```
+
+  
+
+### 3. 断言和内置过滤器
+
+常见的 `predicates`（路由匹配条件）：
+
+1. **`Path`**：根据请求路径进行匹配
+   - `Path=/users/**`：匹配以 `/users/` 开头的路径。
+   - 示例：`/users/123`、`/users/details`。
+
+2. **`Method`**：根据 HTTP 方法进行匹配
+   - `Method=GET`：只匹配 `GET` 请求。
+   - `Method=POST`：只匹配 `POST` 请求。
+   - 示例：`GET /users/123`、`POST /users`。
+
+3. **`Host`**：根据请求的 Host 进行匹配
+   - `Host=*.example.com`：匹配所有请求的 Host 名称为 `example.com` 的请求。
+   - 示例：`GET /users` 请求的 Host 为 `api.example.com`。
+
+4. **`Query`**：根据查询参数进行匹配
+   - `Query=username={value}`：匹配查询参数 `username` 的值。
+   - 示例：`GET /users?username=john`。
+
+5. **`Header`**：根据请求头进行匹配
+   - `Header=Authorization=Bearer {token}`：匹配带有特定 Authorization 头的请求。
+   - 示例：`GET /users/123`，并且 `Authorization=Bearer <token>`。
+
+
+
+常见的 `filters`（过滤器）：
+
+`filters` 用于在请求和响应之间进行处理，通常用于修改请求头、响应体、重定向等。这里的过滤器是局部的过滤器
+
+1. **`AddRequestHeader`**：添加请求头
+   - `AddRequestHeader=X-Request-Foo, Bar`：向请求中添加 `X-Request-Foo` 头，值为 `Bar`。
+   - 示例：请求中会包含 `X-Request-Foo: Bar`。
+
+2. **`AddResponseHeader`**：添加响应头
+   - `AddResponseHeader=X-Response-Foo, Baz`：向响应中添加 `X-Response-Foo` 头，值为 `Baz`。
+
+3. **`SetPath`**：修改请求路径
+   - `SetPath=/newpath/{segment}`：将请求的路径设置为新的路径。
+   - 示例：请求 `/users/123` 会被设置为 `/newpath/123`。
+
+4. **`RedirectTo`**：重定向请求到其他地址
+   - `RedirectTo=301, /new-location`：将请求重定向到 `/new-location`。
+   - 示例：会发出 `301` 重定向到 `/new-location`。
+
+上面的`predicates`和`filters`只写了一部分，具体可以参考spring官网 [地址](https://docs.spring.io/spring-cloud-gateway/docs/current/reference/html/#gateway-request-predicates-factories)
+
+
+
+### 4. 自定义全局和局部过滤器
+
+下面是自定义过滤器的实现方式，其中后两个是gateway提供的
+
+| 方式                            | 作用               | 适用范围          | **执行**                                               |
+| ------------------------------- | ------------------ | ----------------- | ------------------------------------------------------ |
+| **WebFilter**                   | 低级别的请求拦截   | **基于 WebFlux**  | 最早执行，**拦截所有请求**                             |
+| **Spring Security FilterChain** | 权限认证           | **基于 Security** | 如果 **认证不通过**，请求不会进入 Gateway 的 `filters` |
+| **GlobalFilter**                | 拦截所有请求       | **全局过滤**      | Security 通过后，**作用于所有 Gateway 处理的请求**     |
+| **GatewayFilterFactory**        | 针对单个路由的过滤 | **局部过滤**      | 仅针对匹配的 **某个路由** 生效                         |
+
+
+
+#### 3.1 自定义全局过滤器
+
+在 Spring Cloud Gateway 中，全局过滤器（Global Filters）用于在请求和响应过程中对所有路由进行处理。
+
+- 过滤器的作用：
+  - **请求过滤：** 在请求到达后端微服务之前对请求做一些处理，比如增加请求头、日志记录、权限校验等。
+  - **响应过滤：** 在响应从后端微服务返回到客户端之前对响应做一些修改，比如修改响应内容、加密、日志记录等。
+
+1. 创建一个全局过滤器
+
+首先，需要创建一个实现 `GlobalFilter` 接口的类。在这个类中，你可以定义过滤器的逻辑。
+
+```java
+import org.springframework.cloud.gateway.filter.GatewayFilterChain;
+import org.springframework.cloud.gateway.filter.GlobalFilter;
+import org.springframework.core.Ordered;
+import org.springframework.http.HttpHeaders;
+import org.springframework.stereotype.Component;
+import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Mono;
+
+@Component
+public class AddHeaderGlobalFilter implements GlobalFilter, Ordered {
+
+   @Override
+   public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+       return chain.filter(exchange);
+   }
+
+   @Override
+   public int getOrder() {
+       return 1;
+   }
+}
+```
+
+2. 全局过滤器的工作原理
+
+- **`filter()`**：在这里你可以获取到 `ServerWebExchange` 对象，它包含了请求和响应的所有信息。你可以在这里操作请求和响应的内容，进行一些预处理或后处理。最后，调用 `chain.filter(exchange)` 以传递请求继续向下执行其他过滤器或路由。
+
+- **`getOrder()`**：返回一个整数值，用来决定过滤器的执行顺序。**值越小的过滤器会优先执行**。如果你有多个全局过滤器，它们会按照 `getOrder()` 返回值的顺序执行。
+
+
+
+3. 示例：添加请求头
+
+假设我们需要为每个请求添加一个特定的请求头。
+
+```java
+package com.cloud.gateway.config;
+
+import org.springframework.cloud.gateway.filter.GatewayFilterChain;
+import org.springframework.cloud.gateway.filter.GlobalFilter;
+import org.springframework.core.Ordered;
+import org.springframework.http.HttpHeaders;
+import org.springframework.stereotype.Component;
+import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Mono;
+
+@Component
+public class AddHeaderGlobalFilter implements GlobalFilter, Ordered {
+
+    @Override
+    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+        // 获取请求的 headers
+        HttpHeaders headers = exchange.getRequest().getHeaders();
+
+        // 打印原始请求头
+        System.out.println("Request Headers: " + headers);
+
+        // 为请求添加一个新的头部
+        exchange.getRequest().mutate()
+                .header("test", "hello world") // 添加请求头
+                .build();
+
+        // 继续传递到下一个过滤器
+        return chain.filter(exchange);
+    }
+
+    @Override
+    public int getOrder() {
+        return 1;
+    }
+}
+
+```
+
+#### 3.1 自定义局部过滤器
+
+1. 自定义局部过滤器（`GatewayFilter`）：
+
+```java
+import org.springframework.cloud.gateway.filter.GatewayFilter;
+import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Component;
+
+@Component
+public class AuthFilter  extends AbstractGatewayFilterFactory<AuthFilter.Config> {
+
+    public AuthFilter () {
+        super(Config.class);
+    }
+
+    @Override
+    public GatewayFilter apply(Config config) {
+        return (exchange, chain) -> {
+            System.out.println("AuthFilter"); 
+            // 下面实现自己的逻辑
+            String token = exchange.getRequest().getHeaders().getFirst("token");
+            if (token == null || !token.equals(config.getToken())) {
+                exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+                return exchange.getResponse().setComplete();
+            }
+            return chain.filter(exchange);  // 继续处理链中的其他过滤器
+        };
+    }
+
+
+    public static class Config {
+        private String token;
+
+        public String getToken() {
+            return token;
+        }
+
+        public void setToken(String token) {
+            this.token = token;
+        }
+    }
+}
+```
+
+2. 使用局部过滤器
+
+局部过滤器通常在路由配置中使用，你可以将它应用于特定的路由，例如：
+
+```yaml
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: user-service
+          uri: lb://USER-SERVICE
+          predicates:
+            - Path=/users/**
+          filters:
+            - AuthFilter  # 这里引用自定义的局部过滤器
+```
 
 
 
@@ -945,377 +1309,4 @@ public String test1(@RequestParam(required = false) String name, @RequestParam(r
 
 
 
-## 八、服务网关 gateway
 
-Gateway（网关）是微服务架构中的一个重要组件，它通常用作客户端和多个微服务之间的中介，负责请求的路由、负载均衡、认证、限流、安全控制等功能。它通常部署在前端，起到了“入口”作用，是微服务的前端统一访问点。
-
-### 1. 网关的核心功能
-
-网关的核心职责是将外部请求路由到相应的微服务，同时提供一些重要的功能：
-- **请求路由：** 网关根据请求的路径、请求头、参数等信息，将请求转发到对应的微服务。
-- **负载均衡：** 网关能够实现请求的负载均衡，将请求分发到多个后端服务实例，提升服务的可用性和性能。
-- **安全性：** 网关通常是整个系统的第一道防线，可以进行请求的身份验证、授权控制、加密等。
-- **服务发现：** 通过与服务注册中心集成，网关可以动态地获取微服务的实例信息，实现动态路由。
-- **过滤器：** 允许在请求处理过程中添加自定义逻辑。过滤器分为“全局过滤器”和“局部过滤器”。
-- **动态路由：** 可以动态添加路由规则，无需重新启动网关。
-
-### 2. 准备工作
-
-- 引入依赖
-	```xml
-	<!-- gateway 依赖 -->
-	<dependency>
-	    <groupId>org.springframework.cloud</groupId>
-	    <artifactId>spring-cloud-starter-gateway</artifactId>
-	</dependency>
-	<!-- 需要基于注册中心转发请求的话，加上 nacos 依赖 -->
-	<dependency>
-	   <groupId>com.alibaba.cloud</groupId>
-	    <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
-	</dependency>
-	<!-- 如果用到 lb: 的话需要在引入getaway的pom中引入loadbalancer -->
-	<dependency>
-	    <groupId>org.springframework.cloud</groupId>
-	    <artifactId>spring-cloud-starter-loadbalancer</artifactId>
-	</dependency>
-	```
-- 配置路由规则：
-
-	```yaml
-	spring:
-	  application:
-	    name: gateway
-	  cloud:
-	    nacos:
-	      discovery:
-	        server-addr: localhost:8848
-	
-	    gateway:
-	      # 配置路由，这里是一个列表，每一项都包含很多信息
-	      routes:
-	        - id: module1 # 路由名称(nacos中的服务名)
-	          uri: lb://module1 # 路由地址，lb表示使用负载均衡到微服务，也可以使用http正常转发
-	          predicates: # 路由规则，决定哪些请求会被路由
-	            - Path=/test1/** # 请求的路径匹配规则
-	          filters: # 向请求头中添加 test=hello world
-	            - AddRequestHeader=test, hello world
-	server:
-	  port: 8002
-	```
-	在 Spring Cloud Gateway 中，`predicates` 和 `filters` 是配置路由规则和处理请求
-
-	#### **常见的 `predicates`（路由匹配条件）：**
-	
-	1. **`Path`**：根据请求路径进行匹配
-	   - `Path=/users/**`：匹配以 `/users/` 开头的路径。
-	   - 示例：`/users/123`、`/users/details`。
-	
-	2. **`Method`**：根据 HTTP 方法进行匹配
-	   - `Method=GET`：只匹配 `GET` 请求。
-	   - `Method=POST`：只匹配 `POST` 请求。
-	   - 示例：`GET /users/123`、`POST /users`。
-	
-	3. **`Host`**：根据请求的 Host 进行匹配
-	   - `Host=*.example.com`：匹配所有请求的 Host 名称为 `example.com` 的请求。
-	   - 示例：`GET /users` 请求的 Host 为 `api.example.com`。
-	
-	4. **`Query`**：根据查询参数进行匹配
-	   - `Query=username={value}`：匹配查询参数 `username` 的值。
-	   - 示例：`GET /users?username=john`。
-	
-	5. **`Header`**：根据请求头进行匹配
-	   - `Header=Authorization=Bearer {token}`：匹配带有特定 Authorization 头的请求。
-	   - 示例：`GET /users/123`，并且 `Authorization=Bearer <token>`。
-
-	#### 常见的 `filters`（过滤器）：
-
-	`filters` 用于在请求和响应之间进行处理，通常用于修改请求头、响应体、重定向等。这里的过滤器是局部的过滤器
-	
-	1. **`AddRequestHeader`**：添加请求头
-	   - `AddRequestHeader=X-Request-Foo, Bar`：向请求中添加 `X-Request-Foo` 头，值为 `Bar`。
-	   - 示例：请求中会包含 `X-Request-Foo: Bar`。
-	
-	2. **`AddResponseHeader`**：添加响应头
-	   - `AddResponseHeader=X-Response-Foo, Baz`：向响应中添加 `X-Response-Foo` 头，值为 `Baz`。
-	
-	3. **`SetPath`**：修改请求路径
-	   - `SetPath=/newpath/{segment}`：将请求的路径设置为新的路径。
-	   - 示例：请求 `/users/123` 会被设置为 `/newpath/123`。
-	
-	4. **`RedirectTo`**：重定向请求到其他地址
-	   - `RedirectTo=301, /new-location`：将请求重定向到 `/new-location`。
-	   - 示例：会发出 `301` 重定向到 `/new-location`。
-
-
-
-上面的`predicates`和`filters`只写了一部分，具体可以参考spring官网 [地址](https://docs.spring.io/spring-cloud-gateway/docs/current/reference/html/#gateway-request-predicates-factories)
-
-#### 2.1 Spring Cloud Gateway 与其他网关对比
-
-- **与 Nginx 对比：** Nginx 是一个高性能的 Web 服务器，可以作为反向代理和负载均衡器。虽然 Nginx 可以用作网关，但它不提供像 Spring Cloud Gateway 那样丰富的业务逻辑处理能力（如动态路由、API 聚合、过滤器等）。Spring Cloud Gateway 更多地专注于微服务架构中的业务需求。
-
-### 3. 自定义全局和局部过滤器
-
-过滤器是网关的一个重要特性，可以在请求和响应的生命周期中做一些额外的处理。
-
-- 全局过滤器（Global Filter）：全局过滤器可以处理所有请求和响应。你可以在全局过滤器中添加日志记录、认证、限流等操作。
-- 局部过滤器（Gateway Filter）：局部过滤器是针对某个特定路由的过滤器。你可以在路由配置中使用这些过滤器进行特定操作。
-
-#### 3.1 自定义全局过滤器
-
-在 Spring Cloud Gateway 中，全局过滤器（Global Filters）用于在请求和响应过程中对所有路由进行处理。
-- 过滤器的作用：
-	- **请求过滤：** 在请求到达后端微服务之前对请求做一些处理，比如增加请求头、日志记录、权限校验等。
-	- **响应过滤：** 在响应从后端微服务返回到客户端之前对响应做一些修改，比如修改响应内容、加密、日志记录等。
-
-##### 1. 创建一个全局过滤器
-
-首先，需要创建一个实现 `GlobalFilter` 接口的类。在这个类中，你可以定义过滤器的逻辑。
-
-```java
-import org.springframework.cloud.gateway.filter.GatewayFilterChain;
-import org.springframework.cloud.gateway.filter.GlobalFilter;
-import org.springframework.core.Ordered;
-import org.springframework.http.HttpHeaders;
-import org.springframework.stereotype.Component;
-import org.springframework.web.server.ServerWebExchange;
-import reactor.core.publisher.Mono;
-
-@Component
-public class AddHeaderGlobalFilter implements GlobalFilter, Ordered {
-
-   @Override
-   public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-       return chain.filter(exchange);
-   }
-
-   @Override
-   public int getOrder() {
-       return 1;
-   }
-}
-```
-
-##### 2. 全局过滤器的工作原理
-
-- **`filter()`**：在这里你可以获取到 `ServerWebExchange` 对象，它包含了请求和响应的所有信息。你可以在这里操作请求和响应的内容，进行一些预处理或后处理。最后，调用 `chain.filter(exchange)` 以传递请求继续向下执行其他过滤器或路由。
-  
-- **`getOrder()`**：返回一个整数值，用来决定过滤器的执行顺序。值越小的过滤器会优先执行。一般来说，数字越小的过滤器会在请求刚开始时执行，而`数字大`的过滤器会在请求的`最后`阶段执行。
-
-
-- 如果你有多个全局过滤器，它们会按照 `getOrder()` 返回值的顺序执行。
-
-##### 3. 示例：添加请求头
-
-假设我们需要为每个请求添加一个特定的请求头。
-
-```java
-package com.cloud.gateway.config;
-
-import org.springframework.cloud.gateway.filter.GatewayFilterChain;
-import org.springframework.cloud.gateway.filter.GlobalFilter;
-import org.springframework.core.Ordered;
-import org.springframework.http.HttpHeaders;
-import org.springframework.stereotype.Component;
-import org.springframework.web.server.ServerWebExchange;
-import reactor.core.publisher.Mono;
-
-@Component
-public class AddHeaderGlobalFilter implements GlobalFilter, Ordered {
-
-    @Override
-    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-        // 获取请求的 headers
-        HttpHeaders headers = exchange.getRequest().getHeaders();
-
-        // 打印原始请求头
-        System.out.println("Request Headers: " + headers);
-
-        // 为请求添加一个新的头部
-        exchange.getRequest().mutate()
-                .header("test", "hello world") // 添加请求头
-                .build();
-
-        // 继续传递到下一个过滤器
-        return chain.filter(exchange);
-    }
-
-    @Override
-    public int getOrder() {
-        return 1;
-    }
-}
-
-```
-
-#### 3.1 自定义局部过滤器
-##### 1. 自定义局部过滤器（`GatewayFilter`）：
-
-```java
-import org.springframework.cloud.gateway.filter.GatewayFilter;
-import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Component;
-
-@Component
-public class AuthFilter  extends AbstractGatewayFilterFactory<AuthFilter.Config> {
-
-    public AuthFilter () {
-        super(Config.class);
-    }
-
-    @Override
-    public GatewayFilter apply(Config config) {
-        return (exchange, chain) -> {
-            System.out.println("AuthFilter"); 
-            // 下面实现自己的逻辑
-            String token = exchange.getRequest().getHeaders().getFirst("token");
-            if (token == null || !token.equals(config.getToken())) {
-                exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-                return exchange.getResponse().setComplete();
-            }
-            return chain.filter(exchange);  // 继续处理链中的其他过滤器
-        };
-    }
-
-
-    public static class Config {
-        private String token;
-
-        public String getToken() {
-            return token;
-        }
-
-        public void setToken(String token) {
-            this.token = token;
-        }
-    }
-}
-```
-
-##### 2. 使用局部过滤器
-
-局部过滤器通常在路由配置中使用，你可以将它应用于特定的路由，例如：
-
-```yaml
-spring:
-  cloud:
-    gateway:
-      routes:
-        - id: user-service
-          uri: lb://USER-SERVICE
-          predicates:
-            - Path=/users/**
-          filters:
-            - AuthFilter  # 这里引用自定义的局部过滤器
-```
-
-## 九、分布式配置管理 nacos
-
-分布式配置管理功能的主要作用是在不同的服务之间**集中管理和统一分发配置**。这使得系统在配置变更时无需重启服务，可以实时更新配置，从而达到快速响应的效果。
-
-### 1. 基本概念
-
-- **Data ID（数据 ID）**：表示每个配置的唯一标识。在 Nacos 中，一个配置项通常用 Data ID 表示，通常为字符串形式，代表唯一的配置文件名。
-  
-- **Group（组）**：用于将不同的配置项进行分组管理，方便区分开发、测试、生产环境等场景。
-  
-- **Namespace（命名空间）**：用于逻辑隔离配置数据。不同命名空间内的配置是互相隔离的，这在多租户场景中非常有用。
-
-- **配置项**：每个具体的配置信息称为配置项，可以是一个或多个键值对。
-
-
-
-### 2. Nacos 配置管理的使用步骤
-
-![在这里插入图片描述](./../../../笔记/笔记图片/2a4ce11d7b85431db54203f9249c165f.png)
-
-#### 2.1 引入 Nacos 配置管理
-
-1. **引入依赖**
-   
-   ```xml
-   <dependency>
-       <groupId>org.springframework.cloud</groupId>
-       <artifactId>spring-cloud-starter-bootstrap</artifactId>
-   </dependency>
-   
-   <dependency>
-       <groupId>com.alibaba.cloud</groupId>
-       <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
-   </dependency>
-   ```
-   
-2. xxxxxxxxxx public class Service {    public static void main(String[] args) throws IOException {        ServerSocketChannel ssc = ServerSocketChannel.open();        ssc.bind(new InetSocketAddress(8888));        ssc.configureBlocking(false);        Selector selector = Selector.open();        ssc.register(selector, SelectionKey.OP_ACCEPT);​        while (true) {            selector.select();​            Iterator<SelectionKey> iter = selector.selectedKeys().iterator();            while ((iter.hasNext())) {                SelectionKey key = iter.next();                iter.remove();​                if (key.isAcceptable()) {                    ServerSocketChannel channel = (ServerSocketChannel) key.channel();                    SocketChannel sc = channel.accept();                    sc.configureBlocking(false);                    FileChannel fileChannel = FileChannel.open(Paths.get("test.txt"));                    int position = 0;                    int size = (int) fileChannel.size();                    while (position < size) {   // 不需要再将文件读入到 buffer, 通过 sc.write(buffer)                        position += fileChannel.transferTo(position, size - position, sc);                    }                    System.out.println("send ok");                }            }        }    }}java
-   ```yaml
-   spring:
-     application:
-    	 name: module1 
-     profiles:
-        active: dev 
-        
-     cloud:
-       nacos:
-         config:
-           server-addr: localhost:8848 # 服务地址
-           file-extension: yaml
-   ```
-   data_id 一般命名采用 `application.name`-`profiles.active`.`filex-extension`，根据上面的配置，我的dataid就是 module1-dev.yaml
-	![在这里插入图片描述](./../../../笔记/笔记图片/7270be8d65044c86aaa0ca506ecf282d.png)
-	
-3. **获取配置**
-   可以使用 Spring Boot 的 `@Value` 注解来获取 Nacos 中的配置项。例如：
-   ![在这里插入图片描述](./../../../笔记/笔记图片/94e99e74074146e9a4de6a5702b12669.png)
-
-	```java
-	@RestController
-	@RefreshScope
-	public class TestNacosConfigController {
-	
-	    @Value("${test}") 		// 获取到 test 的值
-	    private String test;
-	
-	    @GetMapping("/nacos/config")
-	    public String nacosConfig() {
-	        return test;
-	    }
-	}
-	```
-
-4. **动态刷新配置**
-   使用 `@RefreshScope` 注解，自动刷新配置：(当我们配置中心修改时，不需要重启项目，test 就会自动更新)
-   ```java
-   @RestController
-   @RefreshScope
-   public class TestController {
-       @Value("${test}")
-       private String test;
-   
-       @GetMapping("/nacos/config")
-       public String getConfig() {
-           return test;
-       }
-   }
-   ```
-   ~~我踩的一些坑:~~
-- 最好是新建一个 `bootstrap.yaml` 文件写nacos config的配置，不要直接在 application 中写，不然会遇到奇怪的bug。
-- `bootstrap.yaml` 中一定还要写上 `spring:
-  application:
-    name: module1
-  profiles:
-    active: dev` 这些东西，即使你在 application 中已经写了
-- 如果都按照上面的要求做了，但是就是无法通过 `@Value` 获取到配置属性的话，可以尝试降低 `spring-cloud-starter-alibaba-nacos-config` 的版本。
-	这里我学习的时候就遇到了，通过第一个配置(2023.0.1.3)死活获取不到 test，但是用第二个配置（降低版本的），其他的都没改，就可以获取到。
-	```xml
-	<dependency>
-	    <groupId>com.alibaba.cloud</groupId>
-	    <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
-	</dependency>
-	```
-	```xml
-	<dependency>
-	    <groupId>com.alibaba.cloud</groupId>
-	    <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
-	    <version>2023.0.1.2</version>
-	</dependency>
-	```

@@ -535,15 +535,30 @@ http {
 }
 ```
 
-### 5. nacos
+### 5. Nacos
 
 单机启动（用的默认数据库）
 
 ```bash
-docker run -d \
-  -p 8848:8848 \
-  -e MODE=standalone \
-  nacos/nacos-server:latest
+# nacos 仓库下的 nacos-server 镜像
+docker run -d --name nacos \
+    -p 8848:8848 \
+    -p 9848:9848 \
+    -p 9849:9849 \
+    -p 7848:7848 \
+    -e MODE=standalone \
+    nacos/nacos-server:v2.3.2
+```
+
+### 6. Oracle
+
+```bash
+docker pull container-registry.oracle.com/database/express:21.3.0-xe
+
+docker run -d --name oracle-xe \
+  -p 1521:1521 -p 5500:5500 \
+  -e ORACLE_PASSWORD=di135790 \
+  container-registry.oracle.com/database/express:21.3.0-xe
 ```
 
 

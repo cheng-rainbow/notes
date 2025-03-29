@@ -183,8 +183,6 @@ fs.readdir("./nodejs", (error, data) => {
   }
   console.log("Files in the directory:", data);
 })
-
-
 ```
 
 

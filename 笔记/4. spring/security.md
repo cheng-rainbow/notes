@@ -486,42 +486,103 @@ Spring Security 支持多种授权方式，主要包括：
 
 1. 基于角色的授权
 
-   - **定义角色**：通常在用户注册或用户管理中定义。
-
-   - **配置角色授权**：可以在 Spring Security 配置类中设置基于角色的访问控制。
+基于用户的权限认证，security会通过我们上面实现的 `UserDetailsImpl` 的 `getAuthorities` get方法来获取用户的权限列表，其中用户的权限字符串上面都会加上 `ROLE_`，也就是说会检查权限列表中是否有 `ROLE_ADMIN`，如果有的话就代表用户有权限
 
 
 ```java
-@Override
-protected void configure(HttpSecurity http) throws Exception {
-    http
-        .authorizeRequests()
-        .antMatchers("/admin/**").hasRole("ADMIN")  // 只有 ADMIN 角色可以访问
-        .antMatchers("/user/**").hasAnyRole("USER", "ADMIN")  // USER 和 ADMIN 角色可以访问
-        .anyRequest().authenticated();  // 其他请求需要认证
+@Bean
+public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+
+    // 打开访问权限保护
+    http.authorizeHttpRequests((authz) -> authz
+                    .requestMatchers("/login", "/register", "/add").permitAll()
+                    .requestMatchers(HttpMethod.OPTIONS).permitAll()
+                     // 有 ROLE_admin 角色权限的才可以访问
+                    .requestMatchers("/test").hasAnyRole("admin")
+                    .anyRequest().authenticated()
+            );
+
+    return http.build();
 }
 ```
 
 2. 基于权限的授权
 
-   - **定义权限**：与角色类似，定义更细粒度的权限。
-
-   - **配置权限授权**：在配置类中设置基于权限的访问控制。
+直接基于权限的认证方式，security会直接对比权限列表和 `EDIT_PRIVILEGE` ，如果权限列表中有EDIT_PRIVILEGE，用户就有权限访问
 
 
 ```java
-@Override
-protected void configure(HttpSecurity http) throws Exception {
-    http
-        .authorizeRequests()
-        .antMatchers("/edit/**").hasAuthority("EDIT_PRIVILEGE")  // 仅具有 EDIT_PRIVILEGE 权限的用户可以访问
-        .anyRequest().authenticated();
+@Bean
+public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+
+    // 打开访问权限保护
+    http.authorizeHttpRequests((authz) -> authz
+                    .requestMatchers("/login", "/register", "/add").permitAll()
+                    .requestMatchers(HttpMethod.OPTIONS).permitAll()
+                     // 有 TEST 权限的才可以访问
+                    .requestMatchers("/test").hasAnyAuthority("TEST")
+                    .anyRequest().authenticated()
+            );
+
+    return http.build();
+}
+```
+
+3. 基于权限和角色的授权
+
+同时基于权限和用户来进行授权
+
+```java
+@Bean
+public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+
+    // 打开访问权限保护
+    http.authorizeHttpRequests((authz) -> authz
+                    .requestMatchers("/login", "/register").permitAll()
+                    .requestMatchers(HttpMethod.OPTIONS).permitAll()
+                    // 同时满足 test权限和 ROLE_admin角色的才可以访问
+                    .requestMatchers("/test").access(AuthorizationManagers.allOf(
+                            AuthorityAuthorizationManager.hasAnyAuthority("test"),
+                            AuthorityAuthorizationManager.hasRole("admin"))
+                    )
+                    .anyRequest().authenticated()
+            );
+
+    return http.build();
+}
+```
+
+4. 权限和角色的授权之一
+
+只需要满足拥有其中之一即可
+
+```java
+@Bean
+public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+
+    // 打开访问权限保护
+    http.authorizeHttpRequests((authz) -> authz
+                    .requestMatchers("/login", "/register").permitAll()
+                    .requestMatchers(HttpMethod.OPTIONS).permitAll()
+                    // 同时满足 test权限和 ROLE_admin角色的才可以访问
+                    .requestMatchers("/test").access(AuthorizationManagers.anyOf(
+                            AuthorityAuthorizationManager.hasAnyAuthority("test"),
+                            AuthorityAuthorizationManager.hasRole("admin"))
+                    )
+                    .anyRequest().authenticated()
+            );
+
+    return http.build();
 }
 ```
 
 
 
+
+
 ### 2. 添加权限
+
+roles 和 permissions 一般在 `loadUserByUsername` 中从数据库中查找并初始化
 
 ```java
 @Data
@@ -535,15 +596,15 @@ public class UserDetailsImpl implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // 创建一个 HashSet 用于存储合并后的权限
+        // 1. 创建一个 HashSet 用于存储合并后的权限
         Set<GrantedAuthority> authorities = new HashSet<>();
 
-        // 处理角色，添加 ROLE_ 前缀并添加到 Set 中
+        // 2. 处理角色，添加 ROLE_ 前缀并添加到 Set 中（前面讲到security默认用的角色权限比较时会加上 ROLE_ 前缀）
         authorities.addAll(roles.stream()
                 .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
                 .collect(Collectors.toSet()));
 
-        // 处理权限并添加到 Set 中
+        // 3. 处理权限并添加到 Set 中
         authorities.addAll(permissions.stream()
                 .map(SimpleGrantedAuthority::new)
                 .collect(Collectors.toSet()));
@@ -786,4 +847,135 @@ http.sessionManagement(session -> {
     session.maximumSessions(1).expiredSessionStrategy(new MySessionInformationExpiredStrategy());
 });
 ```
+
+
+
+## 六、OAuth2.0
+
+OAuth2.0 是一种开放的授权协议，它允许资源所有者（通常为用户）授权第三方应用访问存储在资源服务器上的受保护资源，而无需直接向第三方应用提供用户名和密码。
+
+### 1. 角色
+
+**资源所有者（Resource Owner）**：通常指用户，拥有受保护的资源（如个人资料、照片、联系人等）。
+
+**客户端（Client）**：第三方应用程序，需要在**用户授权后**访问资源服务器上的资源。客户端可以是 Web 应用、移动应用、桌面应用
+
+**授权服务器（Authorization Server）**：负责对资源所有者进行身份验证并颁发访问令牌（access token）。
+
+**资源服务器（Resource Server）**：存储受保护资源，并在接收到合法的访问令牌后提供相应的资源。
+
+
+
+### 2. 授权流程
+
+1. **获取授权（Authorization）**
+    客户端通过重定向用户到授权服务器，由用户决定是否授权给客户端访问其受保护资源。用户同意后，授权服务器将返回一个授权凭证（通常是授权码）。
+2. **获取令牌（Token Exchange）**
+    客户端使用前一阶段获得的凭证（例如授权码）向授权服务器请求访问令牌。授权服务器验证后，返回客户端访问令牌，客户端随后可以使用该令牌访问资源服务器。一般情况下，访问令牌的有限期很短，除了访问令牌外还有一个时效比较长的刷新令牌，客户端可以在访问令牌快过期时，用刷新令牌再次获取一个新的访问令牌。
+
+
+
+### 3. OAuth2.0 授权模式
+
+根据具体的使用场景和安全需求，OAuth2.0 定义了几种不同的授权模式：
+
+#### 1. 授权码模式（Authorization Code Grant）
+
+- **流程**
+  1. 客户端将用户重定向到授权服务器的授权端点，传递必要参数（如 client_id、redirect_uri、response_type=code、scope、state 等）。
+  2. 用户登录并同意授权后，授权服务器重定向回客户端指定的 redirect_uri，并附上授权码（code）。
+  3. 客户端使用该授权码、自己的 client_id 和 client_secret 向授权服务器的令牌端点请求访问令牌。
+  4. 授权服务器验证无误后，返回访问令牌（access token）及（可选的）刷新令牌。
+- **特点**
+  - 安全性较高，因为令牌请求在服务器端进行，client_secret 不会暴露给用户代理。
+  - 适用于传统 Web 应用或任何能够安全存储机密信息的应用。
+
+示例请求（步骤 1）：
+
+```
+http复制编辑GET /authorize?response_type=code&client_id=CLIENT_ID
+    &redirect_uri=https%3A%2F%2Fclient.example.com%2Fcallback
+    &scope=read_profile&state=xyz HTTP/1.1
+Host: authorization.server.com
+```
+
+示例令牌请求（步骤 3）：
+
+```
+http复制编辑POST /token HTTP/1.1
+Host: authorization.server.com
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=authorization_code&code=AUTH_CODE
+&redirect_uri=https%3A%2F%2Fclient.example.com%2Fcallback
+&client_id=CLIENT_ID&client_secret=CLIENT_SECRET
+```
+
+
+
+
+
+
+
+#### 2. 隐式授权模式（Implicit Grant）
+
+- **流程**
+  - 客户端直接通过浏览器从授权服务器获得访问令牌，而不经过授权码交换的过程。
+  - 授权服务器将访问令牌作为 URL 的片段（fragment）返回给客户端。
+- **特点**
+  - 不需要客户端密钥，适用于无法安全存储机密（如纯前端的 JavaScript 应用）。
+  - 安全性相对较低，因为令牌直接暴露给用户代理，且令牌通常有效期较短。
+
+示例请求：
+
+```
+http复制编辑GET /authorize?response_type=token&client_id=CLIENT_ID
+    &redirect_uri=https%3A%2F%2Fclient.example.com%2Fcallback
+    &scope=read_profile&state=xyz HTTP/1.1
+Host: authorization.server.com
+```
+
+
+
+
+
+#### 3. 资源所有者密码凭据模式（Resource Owner Password Credentials Grant）
+
+- **流程**
+  - 用户直接将用户名和密码提供给客户端，客户端使用这些凭据向授权服务器请求访问令牌。
+- **特点**
+  - 适用于用户与客户端高度信任的情况（例如，同一公司内部应用）。
+  - 安全性较低，因为用户凭据直接暴露给客户端，不推荐在公开环境中使用。
+
+示例请求：
+
+```
+http复制编辑POST /token HTTP/1.1
+Host: authorization.server.com
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=password&username=USER&password=PASS
+&client_id=CLIENT_ID&client_secret=CLIENT_SECRET
+```
+
+#### 4. 客户端凭据模式（Client Credentials Grant）
+
+- **流程**
+  - 客户端直接使用自己的凭据（client_id 和 client_secret）向授权服务器请求访问令牌，不涉及用户参与。
+- **特点**
+  - 适用于应用自身需要访问资源（例如，后台服务间通信）。
+  - 不涉及用户，因此没有用户授权这一环节。
+
+示例请求：
+
+```
+http复制编辑POST /token HTTP/1.1
+Host: authorization.server.com
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=client_credentials&client_id=CLIENT_ID
+&client_secret=CLIENT_SECRET&scope=read_resource
+```
+
+
 
