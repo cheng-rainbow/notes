@@ -193,6 +193,7 @@ docker run -d --name <容器名>
 -p port:dockerPort 
 --restart <always 或者 on-failure:3>
 -m 512m
+--network loop_net
 -e key=value
 <镜像ID或名称> 
 
@@ -388,6 +389,14 @@ docker run -d --name mysql \
   -v ~/docker/volume/mysql/conf:/etc/mysql/conf.d \
   -v ~/docker/volume/mysql/data:/var/lib/mysql \
   -v ~/docker/volume/mysql/init:/docker-entrypoint-initdb.d \
+  mysql
+  
+docker run -d --name mysql \
+  -p 3306:3306 \
+  --network loop_net \
+  -e MYSQL_ROOT_PASSWORD=di135790 \
+  -v /mysql/conf:/etc/mysql/conf.d \
+  -v /mysql/data:/var/lib/mysql \
   mysql
 ```
 

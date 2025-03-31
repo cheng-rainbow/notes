@@ -168,9 +168,25 @@ Spring Cloud 是一套基于 Spring Boot 的框架集合，用于构建分布式
 
 
 
-## 三、服务注册与发现 nacos
+## 三、服务注册与发现 `nacos`
 
-### 1. 配置
+### 1. 启动 nacos 服务
+
+1. 以单例模式启动 nacos
+
+```bash
+docker run -d --name nacos \
+    -p 8848:8848 \
+    -p 9848:9848 \
+    -p 9849:9849 \
+    -p 7848:7848 \
+    -e MODE=standalone \
+    nacos/nacos-server:v2.3.2
+```
+
+
+
+### 2. SpringBoot 配置
 
 1. 添加依赖到子模块
 
@@ -198,21 +214,6 @@ spring.cloud.nacos.discovery.weight=1 # 当前实例的权值，权值在1-100�
 
 3. 在启动类上加上`@EnableDiscoveryClient`注解
    `@EnableDiscoveryClient` 是一个注解，启动项目即可在 `localhost:8848/nacos` 中查看到已经被注册到中央注册中心
-
-
-
-### 2. 以单例启动
-
-解压进入nacos的 bin目录，以单例模式启动（通过docker）
-```bash
-docker run -d --name nacos \
-    -p 8848:8848 \
-    -p 9848:9848 \
-    -p 9849:9849 \
-    -p 7848:7848 \
-    -e MODE=standalone \
-    nacos/nacos-server:v2.3.2
-```
 
 
 
@@ -244,11 +245,11 @@ spring.cloud.nacos.discovery.server-addr: 172.20.10.2:8870,172.20.10.2:8860,172.
 
 
 
-## 四、分布式配置管理 nacos
+## 四、分布式配置管理 `nacos`
 
 分布式配置管理功能的主要作用是在不同的服务之间**集中管理和统一分发配置**。这使得系统在配置变更时无需重启服务，可以实时更新配置，从而达到快速响应的效果。
 
-### 1. 基本概念
+
 
 - **Data ID（数据 ID）**：表示每个配置的唯一标识。在 Nacos 中，一个配置项通常用 Data ID 表示，通常为字符串形式，代表唯一的配置文件名。
 
@@ -259,8 +260,23 @@ spring.cloud.nacos.discovery.server-addr: 172.20.10.2:8870,172.20.10.2:8860,172.
 - **配置项**：每个具体的配置信息称为配置项，可以是一个或多个键值对。
 
 
+### 1. 启动 nacos 服务
 
-### 2. 引入 Nacos 配置管理
+1. 以单例模式启动 nacos
+
+```bash
+docker run -d --name nacos \
+    -p 8848:8848 \
+    -p 9848:9848 \
+    -p 9849:9849 \
+    -p 7848:7848 \
+    -e MODE=standalone \
+    nacos/nacos-server:v2.3.2
+```
+
+
+
+### 2. SpringBoot 配置
 
 1. **引入依赖**
 
@@ -321,11 +337,11 @@ spring.cloud.nacos.discovery.server-addr: 172.20.10.2:8870,172.20.10.2:8860,172.
 
 
 
-## 五、服务调用和负载均衡 LoadBalancer
+## 五、服务调用和负载均衡 `LoadBalancer`
 
 `Spring Cloud LoadBalancer` 是 Spring Cloud 中的一个客户端负载均衡模块，用于在服务调用者和多个实例之间分配流量。它通过服务发现（比如使用 Nacos）获取可用服务实例的列表，并根据不同的负载均衡策略（如轮询、随机等）选择一个实例进行请求分发。
 
-### 1. 配置环境
+### 1. SpringBoot 配置
 
 在`调用者`项目中添加  `Spring Cloud LoadBalancer`
 
@@ -340,6 +356,8 @@ spring.cloud.nacos.discovery.server-addr: 172.20.10.2:8870,172.20.10.2:8860,172.
 ```xml
 spring.cloud.loadbalancer.configurations=default
 ```
+
+
 
 ### 2. 负载均衡的使用方式
 
@@ -427,13 +445,13 @@ Spring Cloud LoadBalancer 支持使用 `RestTemplate` 、`WebClient` 、`OpenFei
 
 
 
-## 六、服务网关 gateway
+## 六、服务网关 `gateway`
 
 Gateway（网关）是微服务架构中的一个重要组件，它通常用作客户端和多个微服务之间的中介，负责请求的路由、负载均衡、认证、限流、安全控制等功能。它通常部署在前端，起到了“入口”作用，是微服务的前端统一访问点。
 
 **Spring Cloud Gateway** 基于 **WebFlux + Netty + Reactor**，可以更高效地处理大量请求，适用于微服务架构。
 
-### 1. 网关的核心功能
+
 
 网关的核心职责是将外部请求路由到相应的微服务，同时提供一些重要的功能：
 
@@ -444,7 +462,9 @@ Gateway（网关）是微服务架构中的一个重要组件，它通常用作�
 - **过滤器：** 允许在请求处理过程中添加自定义逻辑。过滤器分为“全局过滤器”和“局部过滤器”。
 - **动态路由：** 可以动态添加路由规则，无需重新启动网关。
 
-### 2. 准备工作
+
+
+### 1. SpringBoot 配置
 
 使用gateway的模块不能引入 `spring-boot-starter-web`，Spring MVC（基于 Servlet） 和 Spring Cloud Gateway（基于 WebFlux）会冲突。
 
@@ -494,7 +514,7 @@ Gateway（网关）是微服务架构中的一个重要组件，它通常用作�
 
   
 
-### 3. 断言和内置过滤器
+### 2. 断言和内置过滤器
 
 常见的 `predicates`（路由匹配条件）：
 
@@ -544,52 +564,93 @@ Gateway（网关）是微服务架构中的一个重要组件，它通常用作�
 
 
 
-### 4. 自定义全局和局部过滤器
+### 3. 自定义全局和局部过滤器
 
 下面是自定义过滤器的实现方式，其中后两个是gateway提供的
 
-| 方式                            | 作用               | 适用范围          | **执行**                                               |
-| ------------------------------- | ------------------ | ----------------- | ------------------------------------------------------ |
-| **WebFilter**                   | 低级别的请求拦截   | **基于 WebFlux**  | 最早执行，**拦截所有请求**                             |
-| **Spring Security FilterChain** | 权限认证           | **基于 Security** | 如果 **认证不通过**，请求不会进入 Gateway 的 `filters` |
-| **GlobalFilter**                | 拦截所有请求       | **全局过滤**      | Security 通过后，**作用于所有 Gateway 处理的请求**     |
-| **GatewayFilterFactory**        | 针对单个路由的过滤 | **局部过滤**      | 仅针对匹配的 **某个路由** 生效                         |
+| 方式                            | 作用                                        | 适用范围          | **执行实际**                                           |
+| ------------------------------- | ------------------------------------------- | ----------------- | ------------------------------------------------------ |
+| **WebFilter**                   | 低级别的请求拦截                            | **基于 WebFlux**  | 最早执行，**拦截所有请求**                             |
+| **Spring Security FilterChain** | 权限认证                                    | **基于 Security** | 如果 **认证不通过**，请求不会进入 Gateway 的 `filters` |
+| **GlobalFilter**                | 拦截满足routes的所有请求，不满足的会直接404 | **全局过滤**      | Security 通过后，**作用于所有 Gateway 处理的请求**     |
+| **GatewayFilterFactory**        | 针对单个路由的过滤，添加在filters中的       | **局部过滤**      | 仅针对匹配的 **某个路由** 生效                         |
 
 
 
-#### 3.1 自定义全局过滤器
+1. 自定义全局过滤器
 
-在 Spring Cloud Gateway 中，全局过滤器（Global Filters）用于在请求和响应过程中对所有路由进行处理。
+在 Spring Cloud Gateway 中，全局过滤器（Global Filters）用于在**请求和响应**过程中对**所有路由**进行处理（如果请求不满足任意一种路由匹配，那么会返回404，不经过全局过滤器处理）。
 
 - 过滤器的作用：
   - **请求过滤：** 在请求到达后端微服务之前对请求做一些处理，比如增加请求头、日志记录、权限校验等。
   - **响应过滤：** 在响应从后端微服务返回到客户端之前对响应做一些修改，比如修改响应内容、加密、日志记录等。
 
-1. 创建一个全局过滤器
-
-首先，需要创建一个实现 `GlobalFilter` 接口的类。在这个类中，你可以定义过滤器的逻辑。
+这里我们创建一个`请求全局过滤器`，用于对所有受保护的资源进行 **JWT** 解析，并把解析后的 **userid** 放入header中。
 
 ```java
-import org.springframework.cloud.gateway.filter.GatewayFilterChain;
-import org.springframework.cloud.gateway.filter.GlobalFilter;
-import org.springframework.core.Ordered;
-import org.springframework.http.HttpHeaders;
-import org.springframework.stereotype.Component;
-import org.springframework.web.server.ServerWebExchange;
-import reactor.core.publisher.Mono;
-
 @Component
-public class AddHeaderGlobalFilter implements GlobalFilter, Ordered {
+public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
-   @Override
-   public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-       return chain.filter(exchange);
-   }
+    // @Value("#{'${jwt.white-list}'.split(',')}")
+    // private List<String> WHITE_LIST;
+    
+    // 定义无需认证的路径白名单
+    private static final List<String> WHITE_LIST = Arrays.asList(
+            "/public/**"
+    );
 
-   @Override
-   public int getOrder() {
-       return 1;
-   }
+    @Override
+    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+        String path = exchange.getRequest().getURI().getPath();
+
+        // 如果请求路径在白名单中，跳过 JWT 验证
+        if (isWhiteListed(path)) {
+            return chain.filter(exchange);
+        }
+
+        // 从请求头中获取 Authorization
+        String authHeader = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
+
+        // 检查是否包含 Bearer token
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+            return exchange.getResponse().setComplete();
+        }
+
+        // 提取 JWT token
+        String token = authHeader.substring(7);
+
+        try {
+            // 使用你的 JwtUtil 解析和验证 JWT
+            Claims claims = JwtUtil.parseJWT(token);
+
+            // 将用户信息（如 subject）添加到请求头中，供下游服务使用
+            exchange.getRequest().mutate()
+                    .header("X-UserId", claims.getSubject()) // 可选：传递 用户 的 ID
+                    .build();
+
+            // 继续请求链
+            return chain.filter(exchange);
+        } catch (Exception e) {
+            // JWT 验证失败（过期、签名错误等）
+            exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+            return exchange.getResponse().setComplete();
+        }
+    }
+
+    @Override
+    public int getOrder() {
+        return -100; // 设置优先级，确保在其他过滤器之前执行
+    }
+
+    // 检查路径是否在白名单中
+    private boolean isWhiteListed(String path) {
+        return WHITE_LIST.stream().anyMatch(
+                whitePath -> whitePath.endsWith("/**") ?
+                        path.startsWith(whitePath.substring(0, whitePath.length() - 3)) :
+                        whitePath.equals(path)
+        );
+    }
 }
 ```
 
@@ -597,56 +658,13 @@ public class AddHeaderGlobalFilter implements GlobalFilter, Ordered {
 
 - **`filter()`**：在这里你可以获取到 `ServerWebExchange` 对象，它包含了请求和响应的所有信息。你可以在这里操作请求和响应的内容，进行一些预处理或后处理。最后，调用 `chain.filter(exchange)` 以传递请求继续向下执行其他过滤器或路由。
 
-- **`getOrder()`**：返回一个整数值，用来决定过滤器的执行顺序。**值越小的过滤器会优先执行**。如果你有多个全局过滤器，它们会按照 `getOrder()` 返回值的顺序执行。
+- **`getOrder()`**：返回一个整数值，用来决定过滤器的执行顺序。**值越小的过滤器会优先执行**。如果你有多个全局过滤器，它们会按照 `getOrder()` 返回值的顺序执行。(可以为负值)
 
 
 
-3. 示例：添加请求头
+2. 自定义局部过滤器
 
-假设我们需要为每个请求添加一个特定的请求头。
-
-```java
-package com.cloud.gateway.config;
-
-import org.springframework.cloud.gateway.filter.GatewayFilterChain;
-import org.springframework.cloud.gateway.filter.GlobalFilter;
-import org.springframework.core.Ordered;
-import org.springframework.http.HttpHeaders;
-import org.springframework.stereotype.Component;
-import org.springframework.web.server.ServerWebExchange;
-import reactor.core.publisher.Mono;
-
-@Component
-public class AddHeaderGlobalFilter implements GlobalFilter, Ordered {
-
-    @Override
-    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-        // 获取请求的 headers
-        HttpHeaders headers = exchange.getRequest().getHeaders();
-
-        // 打印原始请求头
-        System.out.println("Request Headers: " + headers);
-
-        // 为请求添加一个新的头部
-        exchange.getRequest().mutate()
-                .header("test", "hello world") // 添加请求头
-                .build();
-
-        // 继续传递到下一个过滤器
-        return chain.filter(exchange);
-    }
-
-    @Override
-    public int getOrder() {
-        return 1;
-    }
-}
-
-```
-
-#### 3.1 自定义局部过滤器
-
-1. 自定义局部过滤器（`GatewayFilter`）：
+自定义局部过滤器（`GatewayFilter`），写完后需要在配置文件中对应的`Routesid`下的的 filters 下面添加类名
 
 ```java
 import org.springframework.cloud.gateway.filter.GatewayFilter;
@@ -666,15 +684,10 @@ public class AuthFilter  extends AbstractGatewayFilterFactory<AuthFilter.Config>
         return (exchange, chain) -> {
             System.out.println("AuthFilter"); 
             // 下面实现自己的逻辑
-            String token = exchange.getRequest().getHeaders().getFirst("token");
-            if (token == null || !token.equals(config.getToken())) {
-                exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-                return exchange.getResponse().setComplete();
-            }
+            
             return chain.filter(exchange);  // 继续处理链中的其他过滤器
         };
     }
-
 
     public static class Config {
         private String token;
@@ -690,153 +703,206 @@ public class AuthFilter  extends AbstractGatewayFilterFactory<AuthFilter.Config>
 }
 ```
 
-2. 使用局部过滤器
-
-局部过滤器通常在路由配置中使用，你可以将它应用于特定的路由，例如：
-
-```yaml
-spring:
-  cloud:
-    gateway:
-      routes:
-        - id: user-service
-          uri: lb://USER-SERVICE
-          predicates:
-            - Path=/users/**
-          filters:
-            - AuthFilter  # 这里引用自定义的局部过滤器
-```
 
 
 
 
-## 五、分布式事务 seata
+## 五、分布式事务 `seata`
 
 Seata 是一款开源的分布式事务解决方案，旨在解决微服务架构中跨服务的事务一致性问题。它提供了易于使用、性能高效的分布式事务管理功能，帮助开发者在分布式系统中保持数据一致性。
 
-### 1. Seata 的概要
+1. Seata 的组成
 
-Seata 由阿里巴巴发起，最初的目的是为了解决微服务场景下的数据一致性问题，尤其是在分布式数据库事务中。Seata 提供了全局事务、分支事务以及资源管理等功能。
+Seata 主要由 **TC（Transaction Coordinator，事务协调器）、TM（Transaction Manager，事务管理器）和 RM（Resource Manager，资源管理器）** 三部分组成。
 
-- **全局事务**：在分布式事务中，通常一个事务可能会涉及多个服务或数据库，Seata 通过全局事务 ID 来保证跨服务事务的原子性。
-- **分支事务**：每个服务或数据库在执行全局事务时会变成一个分支事务，Seata 负责协调各个分支事务的提交与回滚。
-- **AT模式**：Seata 提供了基于数据库的 AT (Automatic Transaction) 模式，它通过对数据库的预存操作和恢复操作来实现事务的一致性。
-- **TCC模式**：TCC (Try, Confirm, Cancel) 是 Seata 支持的另一种事务模式，适用于需要显式操作的场景。
-- **SAGA模式**：SAGA 是另一种事务模型，适合于长事务和复杂业务场景。
-
-
+1. **TC（事务协调器）**: 维护全局事务的状态，并负责协调各个分支事务的提交或回滚。(由 Seata Server 提供，可以独立部署。)
+2. **TM（事务管理器）**: 负责定义全局事务的范围，并发起全局事务。事务发起方使用 **@GlobalTransactional** 注解来标识全局事务的入口。
+3. **RM（资源管理器）**: 负责管理分支事务的资源（例如数据库连接）。处理 TC 下发的分支事务提交或回滚指令，确保本地事务的一致性。
 
 ![在这里插入图片描述](./../../../笔记/笔记图片/00f91ac47ccb4af59545cd0539e69d09.png)
-- RM（ResourceManager）：用于直接执行本地事务的提交和回滚。
-- TM（TransactionManager）：TM是分布式事务的核心管理者。比如现在我们需要在借阅服务中开启全局事务，来让其自身、图书服务、用户服务都参与进来，也就是说一般全局事务发起者就是TM。
-- TC（TransactionManager）这个就是我们的Seata服务器，用于全局控制，一个分布式事务的启动就是由TM向TC发起请求，TC再来与其他的RM进行协调操作
-
 >TM请求TC开启一个全局事务，TC会生成一个XID作为该全局事务的编号，XID会在微服务的调用链路中传播，保证将多个微服务的子事务关联在一起；RM请求TC将本地事务注册为全局事务的分支事务，通过全局事务的XID进行关联；TM请求TC告诉XID对应的全局事务是进行提交还是回滚；TC驱动RM将XID对应的自己的本地事务进行提交还是回滚；
+
+
+
+2. Seata 的事务模式
+
+Seata 提供了 **AT、TCC、SAGA、XA** 四种事务模式，不同模式适用于不同的场景。
+
+AT（自动补偿事务）模式
+
+适用于 **基于关系型数据库的业务场景**，是 Seata **最常用的模式**，支持 **ACID** 事务。
+
+- **核心原理**
+  - **一阶段（Try）：** Seata 在执行 SQL 时，会自动生成回滚日志（Undo Log）。
+  - **二阶段（Commit）：** 直接提交，无需额外操作，保证高性能。
+  - **二阶段（Rollback）：** 如果事务失败，Seata 会通过 Undo Log 自动回滚到事务开始前的状态。
+- **适用场景**
+  - 适用于 **基于 MySQL、PostgreSQL 等支持 ACID 事务的数据库**。
+  - 适用于 **短事务**，如 **订单创建、支付、库存扣减等** 场景。
+- **缺点**: 依赖 Undo Log 进行数据回滚，对数据库性能有一定影响。而且仅支持 **支持 ACID 的数据库**，如 MySQL、PostgreSQL。
+
+TCC（Try-Confirm-Cancel）模式
+
+适用于 **需要业务定制回滚逻辑的场景**，可以保证最终一致性。
+
+- **核心原理**
+  - **Try 阶段**：尝试执行业务操作，并预留业务资源（如冻结账户余额）。
+  - **Confirm 阶段**：提交事务，真正执行业务操作。
+  - **Cancel 阶段**：回滚事务，释放 Try 预留的资源。
+- **适用场景**
+  - 适用于 **需要业务定制回滚逻辑** 的场景，如 **跨数据库、跨服务的支付业务、库存管理、资金转账等**。
+- **缺点**: 需要开发者 **自行实现 Try/Confirm/Cancel 三个阶段的业务逻辑**，增加了开发成本。
+
+SAGA（长事务补偿）模式
+
+适用于 **长事务场景**，如 **跨多个微服务的复杂业务流程**。
+
+- **核心原理**
+  - 事务被拆分为一系列 **有补偿逻辑的子事务**（即每个事务操作都有对应的补偿操作）。
+  - 如果某个子事务失败，系统会依次调用补偿逻辑，回滚已完成的事务。
+- **适用场景**
+  - **流程性事务**，如 **订单流程（订单创建 → 支付 → 物流）**，失败时需要调用补偿逻辑。
+- **缺点**: 需要业务方提供补偿逻辑，开发成本较高。
+
+XA（分布式两阶段提交）模式
+
+适用于 **严格一致性的事务需求**，如 **银行转账、财务交易等金融系统**。
+
+- **核心原理**
+  - **一阶段（Prepare）：** 所有参与者准备好事务，并锁定资源。
+  - **二阶段（Commit/Rollback）：** 事务协调器通知所有参与者提交或回滚事务。
+- **适用场景**
+  - 适用于 **银行、支付等高一致性场景**。
+- **缺点**: 事务锁定资源时间较长，影响系统吞吐量。
+
+
 
 下面以官网的案例来演示整个使用过程
 
-### 2. 准备工作
+### 1. 启动 seata 服务
 
-- **下载seata服务（tc）**
-  下载seata-service压缩包，解压进入`/bin`  ([下载地址](https://github.com/apache/incubator-seata/releases))， 执行 `./seata-server.bat`
+1. 创建数据库 seata
+2. 访问[地址](https://github.com/seata/seata/raw/develop/script/server/db/mysql.sql), 获取需要执行的sql, 同时对于所有服务的数据库中都要加上 下面这个 unlog 表. (如果用的是 AT 模式)
+
+```sql
+-- for AT mode you must to init this sql for you business database. the seata server not need it.
+CREATE TABLE IF NOT EXISTS `undo_log`
+(
+    `branch_id`     BIGINT       NOT NULL COMMENT 'branch transaction id',
+    `xid`           VARCHAR(128) NOT NULL COMMENT 'global transaction id',
+    `context`       VARCHAR(128) NOT NULL COMMENT 'undo_log context,such as serialization',
+    `rollback_info` LONGBLOB     NOT NULL COMMENT 'rollback info',
+    `log_status`    INT(11)      NOT NULL COMMENT '0:normal status,1:defense status',
+    `log_created`   DATETIME(6)  NOT NULL COMMENT 'create datetime',
+    `log_modified`  DATETIME(6)  NOT NULL COMMENT 'modify datetime',
+    UNIQUE KEY `ux_undo_log` (`xid`, `branch_id`)
+) ENGINE = InnoDB
+  AUTO_INCREMENT = 1
+  DEFAULT CHARSET = utf8mb4 COMMENT ='AT transaction mode undo table';
+
+```
+
+3. 下载并获取 seata 的默认配置文件
+
+```bash
+// 1. 随便启动一个 seata
+docker run -d -p 8091:8091 -p 7091:7091  --name seata-server seataio/seata-server:1.6.1
+
+// 2. 获取seata中的配置文件
+docker cp seata-server:/seata-server/resources /seata/config
+
+// 3. 删除随意启动的这个seata
+docker stop seata-server
+docker rm seata-server
+
+// 4. 在本机 /seata/config 中会有 application.yml 的配置文件,修改配置文件如下
+```
+
+`application.yml`
+
+```yml
+server:
+  port: 7091
+
+spring:
+  application:
+    name: seata-server
+
+logging:
+  config: classpath:logback-spring.xml
+  file:
+    path: ${user.home}/logs/seata
+  extend:
+    logstash-appender:
+      destination: 127.0.0.1:4560
+    kafka-appender:
+      bootstrap-servers: 127.0.0.1:9092
+      topic: logback_to_logstash
+
+console:
+  user:
+    username: seata
+    password: seata
+
+seata:
+  config:
+    # support: nacos, consul, apollo, zk, etcd3
+    type: nacos
+    nacos:
+      server-addr: nacos:8848
+      # namespace: seata
+      group: SEATA_GROUP
+      # username: nacos
+      # password: nacos
+      context-path:
+      data-id: seata
+  registry:
+    # support: nacos, eureka, redis, zk, consul, etcd3, sofa
+    type: nacos
+    nacos:
+      application: seata-server
+      server-addr: nacos:8848
+      group: SEATA_GROUP
+      # namespace: seata
+      cluster: default
+      # username: nacos
+      # password: nacos
+      context-path:
+#  server:
+#    service-port: 8091 #If not configured, the default is '${server.port} + 1000'
+  security:
+    secretKey: SeataSecretKey0c382ef121d778043159209298fd40bf3850a017
+    tokenValidityInMilliseconds: 1800000
+    ignore:
+      urls: /,/**/*.css,/**/*.js,/**/*.html,/**/*.map,/**/*.svg,/**/*.png,/**/*.ico,/console-fe/public/**,/api/v1/auth/login
+```
+
+4. 按照上面配置文件中写的, 在nacos创建对应的 **分组** 和 **dataid**, 并在添加配置文件内容为 [地址](https://github.com/apache/incubator-seata/blob/2.x/script/config-center/config.txt) 中的内容, 然后修改其中的 数据库地址
+
+![image-20250331155626260](./../../笔记图片/image-20250331155626260.png)
+
+5. 启动并挂载seata的配置文件
+
+```bash
+// /seata/config/resources中有我们上面获取并修改后的 seata 配置文件
+docker run --name seata-server \
+		-d \
+        -p 8091:8091 \
+        -p 7091:7091 \
+ 		-e SEATA_IP=192.168.227.128 \
+        -v /seata/config/resources:/seata-server/resources  \
+        seataio/seata-server:1.6.1
+```
+
+6. 如果用的docker容器部署, 并且 mysql, nacos, seata 没有在同一个网络下的话, 需要弄到同一个网络下. 
+
+7. 检查数据库中是否有 undo 表, 容器是否在同一个网络, 是否创建了 seata 数据库, 里面是否弄了 4 个表
 
 
-- **配置 Seata**：
-   在 `conf` 目录下，你会找到一个配置文件 `application.yml`。编辑该文件以配置 Seata Server 的各种参数，比如数据库连接、事务日志等。
 
-   ```yaml
-	server:
-	  port: 7091
-	
-	spring:
-	  application:
-	    name: seata-server
-	
-	logging:
-	  config: classpath:logback-spring.xml
-	  file:
-	    path: ${log.home:${user.home}/logs/seata}
-	  extend:
-	    logstash-appender:
-	      destination: 127.0.0.1:4560
-	    kafka-appender:
-	      bootstrap-servers: 127.0.0.1:9092
-	      topic: logback_to_logstash
-	
-	console:
-	  user:
-	    username: seata
-	    password: seata
-	seata:
-	  config:
-	    # support: nacos, consul, apollo, zk, etcd3
-	    type: nacos
-	    nacos:
-	      server-addr: 127.0.0.1:8848
-	      namespace:
-	      group: SEATA_GROUP
-	      username: nacos
-	      password: nacos
-	  registry:
-	    # support: nacos, eureka, redis, zk, consul, etcd3, sofa
-	    type: nacos
-	    nacos:
-	      application: seata-server
-	      server-addr: 127.0.0.1:8848
-	      group: SEATA_GROUP
-	      namespace:
-	      cluster: default
-	      username: nacos
-	      password: nacos
-	  store:
-	    # support: file 、 db 、 redis 、 raft
-	    mode: db
-	  db:
-	      datasource: druid
-	      db-type: mysql
-	      driver-class-name: com.mysql.jdbc.Driver
-	      url: jdbc:mysql://127.0.0.1:3306/seata?rewriteBatchedStatements=true
-	      user: mysql
-	      password: mysql
-	      min-conn: 10
-	      max-conn: 100
-	      global-table: global_table
-	      branch-table: branch_table
-	      lock-table: lock_table
-	      distributed-lock-table: distributed_lock
-	      query-limit: 1000
-	      max-wait: 5000
-	  #  server:
-	  #    service-port: 8091 #If not configured, the default is '${server.port} + 1000'
-	  security:
-	    secretKey: SeataSecretKey0c382ef121d778043159209298fd40bf3850a017
-	    tokenValidityInMilliseconds: 1800000
-	    ignore:
-	      urls: /,/**/*.css,/**/*.js,/**/*.html,/**/*.map,/**/*.svg,/**/*.png,/**/*.jpeg,/**/*.ico,/api/v1/auth/login,/metadata/v1/**
-   ```
+### 2. SpringBoot 配置
 
-- **数据库配置**
- 创建 `seata` 数据库，并访问 [该地址](https://github.com/apache/incubator-seata/blob/develop/script/server/db/mysql.sql)，在seata数据库中执行里面所有的sql脚本
-  创建 `seata_account`, `seata_order`, `seata_storage`数据库，访问 [该地址](https://seata.apache.org/zh-cn/docs/v2.0/user/quickstart), 在上面三个数据库中都创建 `UNDO_LOG` 表，在对应的数据库中创建对应的 业务表。（地址中有sql脚本）
-
--  **启动 Seata Server**：
-   使用以下命令启动 Seata Server：
-   ```bash
-   sh bin/seata-server.sh
-   ```
-
-
-
-最终效果如下
-![在这里插入图片描述](./../../../笔记/笔记图片/03c1b7ff52024fab80c47167a34c7668.png)
-
-创建三个模块(account, order, storage)，加入相关依赖(数据库驱动，mybatis...)，然后按照下面加入 `nacos` 和 `seata` 依赖和配置
-
-
-
-### 3. Seata 与 Spring Boot 集成
-
-#### 3.1 添加 Seata 依赖
+1. 引入依赖
 
 ```xml
 <dependency>
@@ -851,27 +917,27 @@ Seata 由阿里巴巴发起，最初的目的是为了解决微服务场景下�
 </dependency>
 ```
 
-#### 3.2 配置 Seata
-
-在 Spring Boot 项目的 `application.yml` 中配置 Seata。
+2. 在 Spring Boot 项目的 `application.yml` 中配置 Seata。
 
 ```yaml
 seata:
   registry:
-    type: nacos
+    type: nacos # 使用 Nacos 作为 Seata 的注册中心
     nacos:
-      server-addr: localhost:8848
-      namespace: ""
-      group: SEATA_GROUP # 组名  跟我们之前配置的seata的配置文件的是对应的
-      application: seata-server # 服务名 跟我们之前配置的seata的配置文件的是对应的
-  tx-service-group: default_tx_group
+      server-addr: 192.168.227.128:8848 # Nacos 服务端地址和端口
+      namespace: "" # Nacos 命名空间，空字符串表示使用默认命名空间
+      group: SEATA_GROUP # Nacos 服务组名，与 Seata 服务端配置中的组名对应
+      application: seata-server # Seata 服务端在 Nacos 中注册的服务名，与服务端配置对应
+  tx-service-group: default_tx_group # 定义事务组名，标识一组相关的分布式事务，多个微服务可共用此组名与 Seata 服务端通信
   service:
     vgroup-mapping:
-      default_tx_group: default
-  data-source-proxy-mode: AT
+      default_tx_group: default # 将 default_tx_group 事务组映射到 Seata 服务端的 default 集群，用于事务协调
+  data-source-proxy-mode: AT # 数据源代理模式，AT 表示使用自动事务模式（基于 undo_log 实现分布式事务）
 ```
 
-#### 3.3 开启事务管理
+
+
+### 3 开启事务管理
 
 `@GlobalTransactional` 是 Seata 提供的注解，用于实现分布式事务的管理。它是 Seata 的全局事务控制器，通过这个注解，你可以在一个跨多个微服务的操作中，确保数据的一致性和事务的回滚。
 

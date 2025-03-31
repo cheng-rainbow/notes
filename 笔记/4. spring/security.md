@@ -21,7 +21,7 @@ Spring Security 允许开发者通过灵活的配置实现安全控制，确保�
 
 
 
-### 2. 基于数据库的用户认证
+### 2. 基于数据库的用户认证UserDetail
 
 继承 `UserDetailsService` 接口并重写 `loadUserByUsername` 方法即可
 
@@ -98,6 +98,22 @@ public class UserDetailsImpl implements UserDetails {
 
 下面这个是我常用的配置，添加了加密密码的类和验证时用到的类，过滤器启用 jwt，
 ```java
+import com.cloud.module1.config.security.filter.JwtAuthenticationTokenFilter;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -365,7 +381,7 @@ public class JwtAuthenticationTokenFilter extends OncePerRequestFilter {
             return;
         }
 
-        // 4. 认证成功，存入 SecurityContext
+        // 4. 认证成功，存入安全的上下文中。 SecurityContext是当前线程的安全的上下文
         UserDetailsImpl loginUser = new UserDetailsImpl(user);
         UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(loginUser, null, loginUser.getAuthorities());
         SecurityContextHolder.getContext().setAuthentication(authenticationToken);
@@ -975,6 +991,146 @@ Content-Type: application/x-www-form-urlencoded
 
 grant_type=client_credentials&client_id=CLIENT_ID
 &client_secret=CLIENT_SECRET&scope=read_resource
+```
+
+
+
+## 七、引入gateway后的配置
+
+### 1. AuthenticationFilter
+
+由于gateway网关中分为3中请求，1. 放行的接口，2. 受保护的接口，3. 没有路由匹配的接口。当请求有gateway转发到下游服务器时，只存在两种请求，1和2，对于第三种的请求 gateway 已经返回 404了
+
+负责对header中没有userid的接口放行，对包含userid的接口注入用户信息
+
+```java
+import com.cloud.module1.config.security.utils.UserDetailsImpl;
+import com.cloud.module1.mapper.UserMapper;
+
+import com.cloud.module1.pojo.User;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.jetbrains.annotations.NotNull;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+
+import org.springframework.stereotype.Component;
+
+import org.springframework.web.filter.OncePerRequestFilter;
+import java.io.IOException;
+
+@Component
+public class JwtAuthenticationTokenFilter extends OncePerRequestFilter {
+
+    @Autowired
+    private UserMapper userMapper;
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, @NotNull HttpServletResponse response, @NotNull FilterChain filterChain) throws ServletException, IOException {
+        // 1. 检查 SecurityContext 是否已有认证信息，避免重复执行
+        if (SecurityContextHolder.getContext().getAuthentication() != null) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        // 2. 从请求头获取 X-UserId
+        String userIdHeader = request.getHeader("X-UserId");
+        if (userIdHeader == null || userIdHeader.isEmpty()) {
+            // gateway 放行的接口
+            filterChain.doFilter(request, response);
+            return;
+        }
+        try {
+            // 3. 查询数据库
+            Integer userId = Integer.parseInt(userIdHeader);
+            User user = userMapper.selectById(userId);
+
+            if (user == null) {
+                // 用户不存在
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                return;
+            }
+
+            // 4. 封装 UserDetailsImpl 并存入 SecurityContext
+            UserDetailsImpl loginUser = new UserDetailsImpl(user);
+            UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
+                    loginUser, null, loginUser.getAuthorities());
+            SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+        } catch (NumberFormatException e) {
+            // 解析 userId 失败，跳过认证
+            System.err.println("X-UserId 格式错误: " + e.getMessage());
+        }
+
+        // 5. 继续过滤链
+        filterChain.doFilter(request, response);
+    }
+}
+```
+
+
+
+### 2.SecurityConfig
+
+只负责对接口的权限管理，不再管理接口是否放行，而是放行所有接口，接口的放行有 gateway 完成
+
+```java
+import com.cloud.module1.config.security.filter.JwtAuthenticationTokenFilter;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+
+    // 1. 要把这个加入到 Spring Security 的过滤链中
+    @Autowired
+    private JwtAuthenticationTokenFilter jwtAuthenticationTokenFilter;
+
+    // 2. 编码器，对密码进行加密
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    // 3. 下面用户登陆时用来验证账户密码是否在数据库中
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
+        return authConfig.getAuthenticationManager();
+    }
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        // 4. 关闭 csrf，因为我们用的jwt来身份验证,不是基于session，而且如果开启csrf的话我们测试时post，put这种请求会403
+        http.csrf(csrf -> csrf.disable());
+
+        // 5. 关闭session，每次请求不保存session
+        http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+
+        // 6. 打开访问权限保护
+        http.authorizeHttpRequests((authz) -> authz
+                        // 对部分接口进行权限控制
+                        .anyRequest().permitAll()
+                )
+                // 1. 把下面自定义的jwt过滤器添加到Spring Security 过滤链中
+                .addFilterBefore(jwtAuthenticationTokenFilter, UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
+    }
+}
 ```
 
 
