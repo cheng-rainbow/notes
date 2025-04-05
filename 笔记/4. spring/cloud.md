@@ -3,38 +3,38 @@ Spring Cloud 是一套基于 Spring Boot 的框架集合，用于构建分布式
 下图展示了微服务架构中每个主要功能模块的常用解决方案。
 ![在这里插入图片描述](./../../../笔记/笔记图片/ae970a9b6b8441d1b51f707fd30a5237.png)
 
-## 一、相关功能的介绍
+## 一、基本概念和feign的使用
 
-1. `服务注册与发现`
+1. **`服务注册与发现`**
 
 **服务注册**：服务注册与发现用于让各个服务在启动时自动注册到一个中央注册中心（如 Nacos、Eureka），并且能让其他服务通过注册中心找到并调用它们的地址。  
 **发现**：每个服务启动后会将自身的地址和端口信息注册到注册中心；其他服务要调用它时，通过注册中心获取服务实例的地址，而**不需要固定的地址**。
 
-2. `分布式配置管理`
+2. **`分布式配置管理`**
 
 分布式配置管理用于集中管理各服务的配置文件，支持动态更新，不需要重启服务。  可以在配置更新后自动推送至各服务节点，使它们能实时更新配置信息，提升了系统的灵活性和一致性。
 
-3. `服务调用和负载均衡`
+3. **`服务调用和负载均衡`**
 
 **服务调用**：服务之间的通信方式，可以通过 HTTP（如 RESTful API）或 RPC（远程过程调用）进行服务之间的请求。  
 **负载均衡**：在微服务架构中，通常会有多个相同的服务实例分布在不同的服务器上。负载均衡用于在多个实例间分配请求，常见的策略有轮询、随机、最小连接数等，从而提升系统的处理能力和容错性。
 
-3. `分布式事务`
+4. **`服务网关`**
+
+服务网关作为服务的统一入口，处理所有外部请求，提供认证授权、负载均衡、路由分发、监控等功能。它还能对请求进行限流、熔断、降级等保护。  
+
+5. **`分布式事务`**
 
 分布式事务用于保证多个服务在处理同一个业务操作时的一致性。例如，用户下单时，需要支付服务和库存服务同时完成，如果某一方失败，整个操作需要回滚。  
 
-4. `服务熔断和降级`
+6. **`服务熔断和降级`**
 
 **服务熔断**：用于防止一个服务的故障传导到其他服务。如果某个服务在短时间内出现大量的错误或响应缓慢，熔断机制会自动切断对该服务的调用，避免对系统造成更大影响。  
 **服务降级**：在服务出现问题时，提供降级策略，比如返回默认值或简化响应内容，使系统能够在部分服务不可用的情况下继续运行。
 
-5. `服务链路追踪`
+7. **`服务链路追踪`**
 
 服务链路追踪用于跟踪分布式系统中一次请求的完整路径，分析其跨多个服务的执行情况，方便发现延迟或错误。  
-
-6. `服务网关`
-
-服务网关作为服务的统一入口，处理所有外部请求，提供认证授权、负载均衡、路由分发、监控等功能。它还能对请求进行限流、熔断、降级等保护。  
 
 
 
@@ -260,6 +260,8 @@ spring.cloud.nacos.discovery.server-addr: 172.20.10.2:8870,172.20.10.2:8860,172.
 - **配置项**：每个具体的配置信息称为配置项，可以是一个或多个键值对。
 
 
+
+
 ### 1. 启动 nacos 服务
 
 1. 以单例模式启动 nacos
@@ -357,7 +359,11 @@ docker run -d --name nacos \
 spring.cloud.loadbalancer.configurations=default
 ```
 
-
+```yaml
+#feign:
+#  sentinel:
+#    enabled: true
+```
 
 ### 2. 负载均衡的使用方式
 
@@ -428,7 +434,6 @@ Spring Cloud LoadBalancer 支持使用 `RestTemplate` 、`WebClient` 、`OpenFei
 	```java
 	// module2 使用默认，module3 使用随机
 	@Configuration
-	
 	@LoadBalancerClients({
 	        @LoadBalancerClient(value = "module2", configuration = RandomLoadBalancerConfig.class),
 	        @LoadBalancerClient(value = "module3", configuration = DefaultLoadBalancerConfig.class)
@@ -442,6 +447,81 @@ Spring Cloud LoadBalancer 支持使用 `RestTemplate` 、`WebClient` 、`OpenFei
 	    }
 	}
 	```
+
+
+
+### 4. 结合`Feign`使用
+
+**spring-cloud-starter-openfeign** 依赖 **spring-cloud-starter-loadbalancer** 来实现服务名解析和负载均衡。LoadBalancer 负责实例选择，OpenFeign 负责请求构造和发送。
+
+1. 准备工作
+
+```xml
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-openfeign</artifactId>
+</dependency>
+```
+
+2. 添加 @EnableFeignClients 注解到启动类中
+
+```java
+// 指定要扫描的包
+@SpringBootApplication
+@EnableFeignClients(basePackages = "com.cloud.feign")
+public class Module1Application {
+    public static void main(String[] args) {
+        SpringApplication.run(Module1Application.class, args);
+    }
+}
+```
+
+3. 定义feign客户端
+
+```java
+// name: 指定服务名, 如果用的又注册发现, 可以写注册中心的 name, 就不需要指定 url 了
+@FeignClient(name = "module2")
+public interface Module2Client {
+    @GetMapping("/module2/test")
+    String module2Test();
+}
+```
+
+4. 使用不同的负载均衡器
+
+```java
+// 1. 轮询的负载均衡器
+@Configuration
+@LoadBalancerClient(name = "module2", configuration = DefaultLoadBalancerConfig.class) // 指定负载均衡器的名称和配置类
+public class DefaultLoadBalancerConfig {
+
+    @Bean
+    ReactorLoadBalancer<ServiceInstance> roundRobinLoadBalancer(Environment environment,
+                                                                LoadBalancerClientFactory loadBalancerClientFactory) {
+        String name = environment.getProperty(LoadBalancerClientFactory.PROPERTY_NAME); // 获取负载均衡器名称
+        return new RoundRobinLoadBalancer(loadBalancerClientFactory.getLazyProvider(name, ServiceInstanceListSupplier.class), name);
+    }
+}
+```
+
+```java
+// 2. 随机的负载均衡器
+@Configuration
+@LoadBalancerClient(name = "module2", configuration = RandomLoadBalancerConfig.class) // 指定负载均衡器的名称和配置类
+public class RandomLoadBalancerConfig {
+    @Bean
+        // 定义一个Bean
+    ReactorLoadBalancer<ServiceInstance> randomLoadBalancer(Environment environment, // 注入环境变量
+                                                            LoadBalancerClientFactory loadBalancerClientFactory) { // 注入负载均衡器客户端工厂
+        String name = environment.getProperty(LoadBalancerClientFactory.PROPERTY_NAME); // 获取负载均衡器的名称
+
+        // 创建并返回一个随机负载均衡器实例
+        return new RandomLoadBalancer(loadBalancerClientFactory.getLazyProvider(name, ServiceInstanceListSupplier.class), name);
+    }
+}
+```
+
+
 
 
 
@@ -707,82 +787,16 @@ public class AuthFilter  extends AbstractGatewayFilterFactory<AuthFilter.Config>
 
 
 
-## 五、分布式事务 `seata`
+## 七、分布式事务 `seata`
 
 Seata 是一款开源的分布式事务解决方案，旨在解决微服务架构中跨服务的事务一致性问题。它提供了易于使用、性能高效的分布式事务管理功能，帮助开发者在分布式系统中保持数据一致性。
 
-1. Seata 的组成
-
-Seata 主要由 **TC（Transaction Coordinator，事务协调器）、TM（Transaction Manager，事务管理器）和 RM（Resource Manager，资源管理器）** 三部分组成。
-
-1. **TC（事务协调器）**: 维护全局事务的状态，并负责协调各个分支事务的提交或回滚。(由 Seata Server 提供，可以独立部署。)
-2. **TM（事务管理器）**: 负责定义全局事务的范围，并发起全局事务。事务发起方使用 **@GlobalTransactional** 注解来标识全局事务的入口。
-3. **RM（资源管理器）**: 负责管理分支事务的资源（例如数据库连接）。处理 TC 下发的分支事务提交或回滚指令，确保本地事务的一致性。
-
-![在这里插入图片描述](./../../../笔记/笔记图片/00f91ac47ccb4af59545cd0539e69d09.png)
->TM请求TC开启一个全局事务，TC会生成一个XID作为该全局事务的编号，XID会在微服务的调用链路中传播，保证将多个微服务的子事务关联在一起；RM请求TC将本地事务注册为全局事务的分支事务，通过全局事务的XID进行关联；TM请求TC告诉XID对应的全局事务是进行提交还是回滚；TC驱动RM将XID对应的自己的本地事务进行提交还是回滚；
-
-
-
-2. Seata 的事务模式
-
-Seata 提供了 **AT、TCC、SAGA、XA** 四种事务模式，不同模式适用于不同的场景。
-
-AT（自动补偿事务）模式
-
-适用于 **基于关系型数据库的业务场景**，是 Seata **最常用的模式**，支持 **ACID** 事务。
-
-- **核心原理**
-  - **一阶段（Try）：** Seata 在执行 SQL 时，会自动生成回滚日志（Undo Log）。
-  - **二阶段（Commit）：** 直接提交，无需额外操作，保证高性能。
-  - **二阶段（Rollback）：** 如果事务失败，Seata 会通过 Undo Log 自动回滚到事务开始前的状态。
-- **适用场景**
-  - 适用于 **基于 MySQL、PostgreSQL 等支持 ACID 事务的数据库**。
-  - 适用于 **短事务**，如 **订单创建、支付、库存扣减等** 场景。
-- **缺点**: 依赖 Undo Log 进行数据回滚，对数据库性能有一定影响。而且仅支持 **支持 ACID 的数据库**，如 MySQL、PostgreSQL。
-
-TCC（Try-Confirm-Cancel）模式
-
-适用于 **需要业务定制回滚逻辑的场景**，可以保证最终一致性。
-
-- **核心原理**
-  - **Try 阶段**：尝试执行业务操作，并预留业务资源（如冻结账户余额）。
-  - **Confirm 阶段**：提交事务，真正执行业务操作。
-  - **Cancel 阶段**：回滚事务，释放 Try 预留的资源。
-- **适用场景**
-  - 适用于 **需要业务定制回滚逻辑** 的场景，如 **跨数据库、跨服务的支付业务、库存管理、资金转账等**。
-- **缺点**: 需要开发者 **自行实现 Try/Confirm/Cancel 三个阶段的业务逻辑**，增加了开发成本。
-
-SAGA（长事务补偿）模式
-
-适用于 **长事务场景**，如 **跨多个微服务的复杂业务流程**。
-
-- **核心原理**
-  - 事务被拆分为一系列 **有补偿逻辑的子事务**（即每个事务操作都有对应的补偿操作）。
-  - 如果某个子事务失败，系统会依次调用补偿逻辑，回滚已完成的事务。
-- **适用场景**
-  - **流程性事务**，如 **订单流程（订单创建 → 支付 → 物流）**，失败时需要调用补偿逻辑。
-- **缺点**: 需要业务方提供补偿逻辑，开发成本较高。
-
-XA（分布式两阶段提交）模式
-
-适用于 **严格一致性的事务需求**，如 **银行转账、财务交易等金融系统**。
-
-- **核心原理**
-  - **一阶段（Prepare）：** 所有参与者准备好事务，并锁定资源。
-  - **二阶段（Commit/Rollback）：** 事务协调器通知所有参与者提交或回滚事务。
-- **适用场景**
-  - 适用于 **银行、支付等高一致性场景**。
-- **缺点**: 事务锁定资源时间较长，影响系统吞吐量。
-
-
-
-下面以官网的案例来演示整个使用过程
-
 ### 1. 启动 seata 服务
 
+seata服务本质是一个java应用, 我们通过修改 application.yml 配置文件, 给这个服务指定到nacos为他的配置中心, 然后在配置中心中再配置一些相关的配置.
+
 1. 创建数据库 seata
-2. 访问[地址](https://github.com/seata/seata/raw/develop/script/server/db/mysql.sql), 获取需要执行的sql, 同时对于所有服务的数据库中都要加上 下面这个 unlog 表. (如果用的是 AT 模式)
+2. 访问 [地址](https://github.com/seata/seata/raw/develop/script/server/db/mysql.sql) , 获取需要执行的sql, 同时对于所有服务的数据库中都要加上 下面这个 unlog 表. (如果用的是 AT 模式)
 
 ```sql
 -- for AT mode you must to init this sql for you business database. the seata server not need it.
@@ -879,7 +893,152 @@ seata:
 
 4. 按照上面配置文件中写的, 在nacos创建对应的 **分组** 和 **dataid**, 并在添加配置文件内容为 [地址](https://github.com/apache/incubator-seata/blob/2.x/script/config-center/config.txt) 中的内容, 然后修改其中的 数据库地址
 
-![image-20250331155626260](./../../笔记图片/image-20250331155626260.png)
+```properties
+transport.protocol=seata
+transport.type=TCP
+transport.server=NIO
+transport.heartbeat=true
+transport.enableTmClientBatchSendRequest=false
+transport.enableRmClientBatchSendRequest=true
+transport.enableTcServerBatchSendResponse=false
+transport.rpcRmRequestTimeout=30000
+transport.rpcTmRequestTimeout=30000
+transport.rpcTcRequestTimeout=30000
+transport.enableClientSharedEventLoopGroup=false
+transport.threadFactory.bossThreadPrefix=NettyBoss
+transport.threadFactory.workerThreadPrefix=NettyServerNIOWorker
+transport.threadFactory.serverExecutorThreadPrefix=NettyServerBizHandler
+transport.threadFactory.shareBossWorker=false
+transport.threadFactory.clientSelectorThreadPrefix=NettyClientSelector
+transport.threadFactory.clientSelectorThreadSize=-1
+transport.threadFactory.clientWorkerThreadPrefix=NettyClientWorkerThread
+transport.threadFactory.bossThreadSize=1
+transport.threadFactory.workerThreadSize=default
+transport.shutdown.wait=3
+transport.serialization=seata
+transport.compressor=none
+
+#Transaction routing rules configuration, only for the client
+service.vgroupMapping.default_tx_group=default
+
+client.metadataMaxAgeMs=30000
+#Transaction rule configuration, only for the client
+client.rm.asyncCommitBufferLimit=10000
+client.rm.lock.retryInterval=10
+client.rm.lock.retryTimes=30
+client.rm.lock.retryPolicyBranchRollbackOnConflict=true
+client.rm.reportRetryCount=5
+client.rm.tableMetaCheckEnable=true
+client.rm.tableMetaCheckerInterval=60000
+client.rm.sqlParserType=druid
+client.rm.reportSuccessEnable=false
+client.rm.sagaBranchRegisterEnable=false
+client.rm.sagaJsonParser=fastjson
+client.rm.tccActionInterceptorOrder=-2147482648
+client.rm.sqlParserType=druid
+client.tm.commitRetryCount=5
+client.tm.rollbackRetryCount=5
+client.tm.defaultGlobalTransactionTimeout=60000
+client.tm.degradeCheck=false
+client.tm.degradeCheckAllowTimes=10
+client.tm.degradeCheckPeriod=2000
+client.tm.interceptorOrder=-2147482648
+client.undo.dataValidation=true
+client.undo.logSerialization=jackson
+client.undo.onlyCareUpdateColumns=true
+server.undo.logSaveDays=7
+server.undo.logDeletePeriod=86400000
+client.undo.logTable=undo_log
+client.undo.compress.enable=true
+client.undo.compress.type=zip
+client.undo.compress.threshold=64k
+#For TCC transaction mode
+tcc.fence.logTableName=tcc_fence_log
+tcc.fence.cleanPeriod=1h
+# You can choose from the following options: fastjson, jackson, gson
+tcc.contextJsonParserType=fastjson
+
+#Log rule configuration, for client and server
+log.exceptionRate=100
+
+#Transaction storage configuration, only for the server. The file, db, and redis configuration values are optional.
+store.mode=db
+store.lock.mode=db
+store.session.mode=db
+#Used for password encryption
+store.publicKey=
+
+#These configurations are required if the `store mode` is `db`. If `store.mode,store.lock.mode,store.session.mode` are not equal to `db`, you can remove the configuration block.
+store.db.datasource=druid
+store.db.dbType=mysql
+store.db.driverClassName=com.mysql.cj.jdbc.Driver
+store.db.url=jdbc:mysql://mysql:3306/seata?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8
+store.db.user=root
+store.db.password=di135790
+store.db.minConn=5
+store.db.maxConn=30
+store.db.globalTable=global_table
+store.db.branchTable=branch_table
+store.db.distributedLockTable=distributed_lock
+store.db.vgroupTable=vgroup-table
+store.db.queryLimit=100
+store.db.lockTable=lock_table
+store.db.maxWait=5000
+
+store.db.druid.timeBetweenEvictionRunsMillis=120000
+store.db.druid.minEvictableIdleTimeMillis=300000
+store.db.druid.testWhileIdle=true
+store.db.druid.testOnBorrow=false
+store.db.druid.keepAlive=false
+
+
+store.db.dbcp.timeBetweenEvictionRunsMillis=120000
+store.db.dbcp.minEvictableIdleTimeMillis=300000
+store.db.dbcp.testWhileIdle=true
+store.db.dbcp.testOnBorrow=false
+
+
+#Transaction rule configuration, only for the server
+server.recovery.committingRetryPeriod=1000
+server.recovery.asynCommittingRetryPeriod=1000
+server.recovery.rollbackingRetryPeriod=1000
+server.recovery.endstatusRetryPeriod=1000
+server.recovery.timeoutRetryPeriod=1000
+server.maxCommitRetryTimeout=-1
+server.maxRollbackRetryTimeout=-1
+server.rollbackFailedUnlockEnable=false
+server.distributedLockExpireTime=10000
+server.session.branchAsyncQueueSize=5000
+server.session.enableBranchAsyncRemove=false
+server.enableParallelRequestHandle=true
+server.enableParallelHandleBranch=false
+server.applicationDataLimit=64000
+server.applicationDataLimitCheck=false
+
+server.raft.server-addr=127.0.0.1:7091,127.0.0.1:7092,127.0.0.1:7093
+server.raft.snapshotInterval=600
+server.raft.applyBatch=32
+server.raft.maxAppendBufferSize=262144
+server.raft.maxReplicatorInflightMsgs=256
+server.raft.disruptorBufferSize=16384
+server.raft.electionTimeoutMs=2000
+server.raft.reporterEnabled=false
+server.raft.reporterInitialDelay=60
+server.raft.serialization=jackson
+server.raft.compressor=none
+server.raft.sync=true
+
+server.ratelimit.enable=false
+server.ratelimit.bucketTokenNumPerSecond=999999
+server.ratelimit.bucketTokenMaxNum=999999
+server.ratelimit.bucketTokenInitialNum=999999
+
+#Metrics configuration, only for the server
+metrics.enabled=true
+metrics.registryType=compact
+metrics.exporterList=prometheus
+metrics.exporterPrometheusPort=9898
+```
 
 5. 启动并挂载seata的配置文件
 
@@ -915,6 +1074,11 @@ docker run --name seata-server \
         </exclusion>
     </exclusions>
 </dependency>
+这两个好像都可以, 经测试
+<dependency>
+    <groupId>com.alibaba.cloud</groupId>
+    <artifactId>spring-cloud-starter-alibaba-seata</artifactId>
+</dependency>
 ```
 
 2. 在 Spring Boot 项目的 `application.yml` 中配置 Seata。
@@ -933,7 +1097,11 @@ seata:
     vgroup-mapping:
       default_tx_group: default # 将 default_tx_group 事务组映射到 Seata 服务端的 default 集群，用于事务协调
   data-source-proxy-mode: AT # 数据源代理模式，AT 表示使用自动事务模式（基于 undo_log 实现分布式事务）
+  
+  # 事务组和集群的映射可以通过nacos充当配置中写, 把映射关系写在nacos中, 当某个集群挂掉后通过修改nacos的映射就可以自动切换
 ```
+
+3. 该 [地址](https://seata.apache.org/zh-cn/docs/v2.0/user/quickstart/) 可以创建三个表做测试
 
 
 
@@ -965,414 +1133,374 @@ public void yourMethod() {
 
 
 
+### 4. Seata 的组成
+
+Seata 主要由 **TC（Transaction Coordinator，事务协调器）、TM（Transaction Manager，事务管理器）和 RM（Resource Manager，资源管理器）** 三部分组成。
+
+1. **TC（事务协调器）**: 维护全局事务的状态，并负责协调各个分支事务的提交或回滚。(由 Seata Server 提供，可以独立部署。)
+2. **TM（事务管理器）**: 负责定义全局事务的范围，并发起全局事务。事务发起方使用 **@GlobalTransactional** 注解来标识全局事务的入口。
+3. **RM（资源管理器）**: 负责管理分支事务的资源（例如数据库连接）。处理 TC 下发的分支事务提交或回滚指令，确保本地事务的一致性。
+
+>TM请求TC开启一个全局事务，TC会生成一个XID作为该全局事务的编号，XID会在微服务的调用链路中传播，保证将多个微服务的子事务关联在一起；RM请求TC将本地事务注册为全局事务的分支事务，通过全局事务的XID进行关联；TM请求TC告诉XID对应的全局事务是进行提交还是回滚；TC驱动RM将XID对应的自己的本地事务进行提交还是回滚；
 
 
-## 六、服务熔断和降级 sentinel
+
+### 5. Seata 的事务模式(`AT`, `XA`)
+
+Seata 提供了 **AT、TCC、SAGA、XA** 四种事务模式，不同模式适用于不同的场景。
+
+
+
+1. AT（自动补偿事务）模式
+
+适用于 **基于关系型数据库的业务场景**，是 Seata **最常用的模式**，支持 **ACID** 事务。
+
+- **核心原理**
+  - **一阶段（Try）：** Seata 在执行 SQL 时，会自动生成回滚日志（Undo Log）。
+  - **二阶段（Commit）：** 直接提交，无需额外操作，保证高性能。
+  - **二阶段（Rollback）：** 如果事务失败，Seata 会通过 Undo Log 自动回滚到事务开始前的状态。
+- **适用场景**
+  - 适用于 **基于 MySQL、PostgreSQL 等支持 ACID 事务的数据库**。
+  - 适用于 **短事务**，如 **订单创建、支付、库存扣减等** 场景。
+- **缺点**: 依赖 Undo Log 进行数据回滚，对数据库性能有一定影响。而且仅支持 **支持 ACID 的数据库**，如 MySQL、PostgreSQL。
+
+![image-20250331191851631](./../../笔记图片/image-20250331191851631.png)
+
+![image-20250331201329898](./../../笔记图片/image-20250331201329898.png)
+
+![image-20250331203358446](./../../笔记图片/image-20250331203358446.png)
+
+![image-20250331203740026](./../../笔记图片/image-20250331203740026.png)
+
+
+
+
+
+2. XA（分布式两阶段提交）模式
+
+适用于 **严格一致性的事务需求**，如 **银行转账、财务交易等金融系统**。
+
+- **核心原理**
+  - **一阶段（Prepare）：** 所有参与者准备好事务，并锁定资源。
+  - **二阶段（Commit/Rollback）：** 事务协调器通知所有参与者提交或回滚事务。
+- **适用场景**
+  - 适用于 **银行、支付等高一致性场景**。
+- **缺点**: 事务锁定资源时间较长，影响系统吞吐量。
+
+![image-20250331185526493](./../../笔记图片/image-20250331185526493.png)
+
+3. TCC（Try-Confirm-Cancel）模式
+
+适用于 **需要业务定制回滚逻辑的场景**，可以保证最终一致性。
+
+- **核心原理**
+  - **Try 阶段**：尝试执行业务操作，并预留业务资源（如冻结账户余额）。
+  - **Confirm 阶段**：提交事务，真正执行业务操作。
+  - **Cancel 阶段**：回滚事务，释放 Try 预留的资源。
+- **适用场景**
+  - 适用于 **需要业务定制回滚逻辑** 的场景，如 **跨数据库、跨服务的支付业务、库存管理、资金转账等**。
+- **缺点**: 需要开发者 **自行实现 Try/Confirm/Cancel 三个阶段的业务逻辑**，增加了开发成本。
+
+![image-20250331202249479](./../../笔记图片/image-20250331202249479.png)
+
+
+
+4. SAGA（长事务补偿）模式
+
+适用于 **长事务场景**，如 **跨多个微服务的复杂业务流程**。
+
+- **核心原理**
+  - 事务被拆分为一系列 **有补偿逻辑的子事务**（即每个事务操作都有对应的补偿操作）。
+  - 如果某个子事务失败，系统会依次调用补偿逻辑，回滚已完成的事务。
+- **适用场景**
+  - **流程性事务**，如 **订单流程（订单创建 → 支付 → 物流）**，失败时需要调用补偿逻辑。
+- **缺点**: 需要业务方提供补偿逻辑，开发成本较高。
+
+
+
+
+
+
+
+## 六、服务熔断和降级 `sentinel`
 
 Sentinel 是阿里巴巴开源的分布式系统流量控制组件，主要用于保护微服务在高并发、突发流量等场景下的稳定性和可靠性。Sentinel 提供了 流量控制、熔断降级、系统自适应保护等机制
 
-### 1. Sentinel 的核心功能
+Sentinel 中的 **“资源”**是你希望保护或监控的任何代码块、功能单元或服务入口, 每一个资源都可以绑定一套限流规则或熔断规则。也可以多个接口共享同一个资源名，统一应用规则, 这两个资源共享一个 QPS 限制。给谁限流就给谁添加限流规则
 
-Sentinel 提供了以下核心功能：
-
-- **流量控制**：根据预定义的规则限制访问频率或数量，避免系统过载。
-- **熔断降级**：在请求失败率或响应时间过高时自动降级，防止雪崩效应。
-- **系统自适应保护**：基于系统的负载情况自动进行保护，如 CPU 使用率、内存占用等。
-- **热点参数限流**：对请求中的参数进行限流，比如按不同用户 ID 或商品 ID 限制请求。
-
-### 2. Sentinel 的基本概念
-
-在 Sentinel 中，核心是“资源”，可以是服务、接口或方法。每一个资源都会绑定一套限流规则或熔断规则。以下是 Sentinel 的几个基本概念：
-
-- **资源 (Resource)**：受保护的对象，如 API 接口或数据库操作。
-- **规则 (Rule)**：用于定义流量控制、熔断降级的条件。
-- **Slot Chain**：Sentinel 使用 Slot Chain 机制来应用限流、降级、系统保护等规则。每一个 Slot Chain 包含多个 Slot，不同 Slot 处理不同的规则。
-### 3. Sentinel 的监控和控制台
-
-Sentinel 提供了 Dashboard 管理控制台，可以用来监控各个资源的访问情况，并动态配置流量控制和熔断规则。([下载地址](https://github.com/alibaba/Sentinel/releases), 下载`jar`包)
-
-- 启动 jar 包。
-![在这里插入图片描述](./../../../笔记/笔记图片/a971cdcfa04c4a7a905eb2337eb104c3.png)
-访问 `http://localhost:8888/` (这里我设置的端口是 8888) 进入控制台。
-账号密码都是 sentinel
-
-- 引入 sentinel
-	```xml
-	 <dependency>
-	    <groupId>com.alibaba.cloud</groupId>
-	    <artifactId>spring-cloud-starter-alibaba-sentinel</artifactId>
-	</dependency>
-	```
-	
-	```java
-	spring.cloud.sentinel.transport.dashboard=localhost:8888
-	```
-- 访问module任意controller后就可以看到 module1 加入到控制台
-![在这里插入图片描述](./../../../笔记/笔记图片/1419e7c5b247457d8e1be87e893ff734.png)
-
-### 4. @SentinelResource注解
-
-`@SentinelResource` 是 **Sentinel** 中用于标记 `方法` 的注解，它允许你在方法调用时应用 Sentinel 的规则和控制策略。通过使用这个注解，你可以将 **Sentinel** 的流量控制、熔断降级、热点参数限流等功能集成到业务逻辑中。
-
-#### 4.1 `value` 参数：资源名称
-
-- **作用**：指定该方法的 **资源名称**，这个名称会作为 Sentinel 资源的标识，用来应用流控、熔断、降级等策略。通常可以是方法名或其他具代表性的字符串。
-- **默认值**：方法名（如果未指定）。
+可以通过 `@SentinelResource` 来标识一个资源
 
 
 
-#### 4.2 `blockHandler` 参数：限流或熔断处理方法
+### 1. 启动sentinel服务
 
-- **作用**：当资源受到 **流量控制**（如限流）或 **熔断降级**（如调用失败）时，会调用指定的 `blockHandler` 方法。(`handelBlock` 方法一定要写上 `BlockException ex `)
-- **类型**：`blockHandler` 的方法可以是当前类中的一个静态方法，或是其他类的静态方法。
+启动后通过 `http://192.168.227.128:8280/` 可以访问控制台
 
-示例：
-```java
-@SentinelResource(value = "myResource", blockHandler = "handleBlock")
-public String someMethod() {
-    // 你的业务逻辑
-    return "Hello, Sentinel!";
-}
-
-// 流控或熔断时的处理方法
-public static String handleBlock(BlockException ex) {
-    return "Service is currently unavailable due to high traffic. Please try again later.";
-}
-```
-在这个例子中，当 `myResource` 资源被流控或熔断时，`handleBlock` 方法将被调用，返回一条友好的错误信息。
-
-#### 4.3 `fallback` 参数：降级处理方法
-
-- **作用**：当资源发生 **异常** 或 **超时** 时，触发降级逻辑，会调用指定的 `fallback` 方法。这个方法需要与原始方法的签名一致。（**流量超限**或**熔断**触发时也会调用 `fallback`，如果同时有 `fallback` 和 `blockHandler`, 会优先调用 `blockHandler`）
-- **类型**：`fallback` 的方法可以是当前类中的一个静态方法，或是其他类的静态方法。
-
-示例：
-```java
-@SentinelResource(value = "myResource", fallback = "fallbackMethod")
-public String someMethod() {
-    // 可能会抛出异常的业务逻辑
-    throw new RuntimeException("Something went wrong");
-}
-
-// 降级方法
-public static String fallbackMethod(Throwable ex) {
-    return "Service is temporarily unavailable due to internal error. Please try again later.";
-}
-```
-在这个例子中，当 `someMethod` 方法抛出异常时，`fallbackMethod` 会被调用，返回一个默认的降级响应。
-
-#### 4.4 `exceptionsToIgnore` 参数：忽略的异常类型
-
-- **作用**：指定不触发 **降级** 或 **熔断** 的异常类型。即使这些异常发生，也不会进入 `fallback` 或 `blockHandler`。
-- **默认值**：没有忽略的异常，所有的异常都会触发降级逻辑。
-
-#### 4.5 `blockHandlerClass` 参数：自定义流控处理类
-
-- **作用**：指定一个类，其中包含 `blockHandler` 处理方法。这样可以将流控处理方法与业务逻辑分离，便于管理。
-- **默认值**：如果未指定，`blockHandler` 方法会在当前类中查找。
-
-示例：
-```java
-@SentinelResource(value = "myResource", blockHandler = "handleBlock", blockHandlerClass = BlockHandler.class)
-public String someMethod() {
-    // 业务逻辑
-    return "Hello, Sentinel!";
-}
-
-// 自定义流控处理类
-public class BlockHandler {
-    public static String handleBlock(BlockException ex) {
-        return "Service is temporarily unavailable due to traffic control.";
-    }
-}
+```bash
+docker run -d --name sentinel-dashboard \
+  -p 8280:8280 \
+  -p 8719:8719 \
+  -e USERNAME="sentinel" \
+  -e PASSWORD="sentinel" \
+  foxiswho/sentinel:latest
 ```
 
-#### 4.6 `fallbackClass` 参数：自定义降级处理类
+### 2. Springboot 配置
 
-- **作用**：指定一个类，其中包含 `fallback` 处理方法。这样可以将降级处理方法与业务逻辑分离，便于管理。
-- **默认值**：如果未指定，`fallback` 方法会在当前类中查找。
-
-示例：
-```java
-@SentinelResource(value = "myResource", fallback = "fallbackMethod", fallbackClass = FallbackHandler.class)
-public String someMethod() {
-    // 业务逻辑
-    throw new RuntimeException("Something went wrong");
-}
-
-// 自定义降级处理类
-public class FallbackHandler {
-    public static String fallbackMethod(Throwable ex) {
-        return "Service is temporarily unavailable due to an error.";
-    }
-}
-```
-
-
-### 5. 流量控制
-#### 5.1 流控模式
-- 直接：只针对于当前接口。
-- 关联：如果指定的关联接口超过qps（每秒的请求数），会导致当前接口被限流。
-- 链路：更细粒度的限流，能精确到具体的**方法**, 直接和关联只能对接口进行限流
-	
-
-链路流控模式指的是，当从指定接口过来的资源请求达到限流条件时，开启限流。
-
-```
-# 关闭Context收敛，这样被监控方法可以进行不同链路的单独控制
-spring.cloud.sentinel.web-context-unify: false
-# 比如我 /test1 和 /test2 接口下都调用了 test 方法，那么我可以在sentinel 控制台中分别对 /test1 和 /test2 的 test 进行设置
-```
-
-![在这里插入图片描述](./../../../笔记/笔记图片/ee34af3e6ded420f914243b058bad341.png)
-
-
-
- #### 5.2 流控效果
-
-**快速拒绝：** 既然不再接受新的请求，那么我们可以直接返回一个拒绝信息，告诉用户访问频率过高。
-**预热:** 依然基于方案一，但是由于某些情况下高并发请求是在某一时刻突然到来，我们可以缓慢地将阈值提高到指定阈值，形成一个缓冲保护
-**排队等待：** 不接受新的请求，但是也不直接拒绝，而是进队列先等一下，如果规定时间内能够执行，那么就执行，要是超时就算了。
-
-#### 5.3 实现对方法的限流控制
-我们可以使用到`@SentinelResource`对某一个**方法**进行限流控制，无论是谁在何处调用了它，，一旦**方法**被标注，那么就会进行监控。
-```java
-@RestController
-public class TestController {
-
-    @Autowired
-    RestTemplate restTemplate;
-
-    @Autowired
-    MyService myService;
-
-    @GetMapping("/test1")
-    public String test1() {
-        return myService.test();
-    }
-
-    @GetMapping("/test2")
-    public String test2() {
-        return myService.test();
-    }
-}
-// ------------------------
-@Service
-public class MyService {
-
-    @SentinelResource("mytest")	// 标记方法
-    public String test() {
-        return "test";
-    }
-}
-```
-添加 `spring.cloud.sentinel.web-context-unify=false`, 可以对 /test1 和 /test2 的 mytest单独控制
-![在这里插入图片描述](./../../../笔记/笔记图片/d8c7a8edab6048ff94c6f139ae15ed54.png)
-不添加的, 无法单独控制
-![在这里插入图片描述](./../../../笔记/笔记图片/767ba7e5356d4f1eb80a7845601feeab.png)
-~~一些坑~~
-如果在方法上添加了 `@SentinelResource` 注解，但是不在控制台中显示的话(不显示mytest), 可能是因为添加的方法没有加入到spring容器中进行管理。比如我当时下面这样写就出现了不在控制台显示的情况。
-```java
-@RestController
-public class TestController {
-    
-    @GetMapping("/test1")
-    public String test1() {
-        return test();
-    }
-    
-    @SentinelResource("mytest")
-    public String test() {
-        return "test";
-    }
-}
-```
-
-#### 5.4 处理限流情况
-当访问某个 `接口` 出现限流时，会抛出限流异常，重定向到我们添加的路径
-```java
-@RequestMapping("/blockPage")
-    public String blockPage() {
-        return "blockPage";
-    }
-```
+引入 sentinel
 ```xml
-# 用于设置当 流控 或 熔断 触发时，返回给用户的 阻塞页面
-spring.cloud.sentinel.block-page=/blockPage
+ <dependency>
+    <groupId>com.alibaba.cloud</groupId>
+    <artifactId>spring-cloud-starter-alibaba-sentinel</artifactId>
+</dependency>
 ```
 
-当访问的某个 `方法` 出现了限流，为 `blockHander` 指定方法，当限流时会访问 `test2`, 并且可以接受 `test` 的参数
 ```java
-@Service
-public class MyService {
+spring:
+  cloud:
+    sentinel:
+      transport:
+        dashboard: 192.168.227.128:8280
+        port: 8719
+```
 
-    @SentinelResource(value = "mytest", blockHandler = "test2")
-    public String test(int id) {
-        return "test";
-    }
 
-    public String test2(int id, BlockException ex) {
-        return "test 限流了 " + id;
+
+### 3. 限流
+
+限流是一种流量控制机制，当流量超过上限时，系统会拒绝请求，通常返回 429 错误，表示请求被限流。(也可以返回一些空数据)
+
+sentinel 的限流有两种实现方式, 通过 **信号量隔离 **和 **线程隔离**, 其中信号量隔离对应 QPS, 线程隔离对应线程数.
+
+1. 信号量隔离
+
+![image-20250403104743615](./../../笔记图片/image-20250403104743615.png)
+
+2. 线程隔离
+
+![image-20250403104726495](./../../笔记图片/image-20250403104726495.png)
+
+3.1 **流控模式**
+
+直接模式: 当前资源请求 `/module2/test` 超过阈值时触发
+
+![image-20250401162917185](./../../笔记图片/image-20250401162917185.png)
+
+关联模式: 当资源 `/module3/test` 达到阈值 5 时, 对 `/module2/test` 资源进行限流. 一般是两个有竞争关系的资源, 优先级高的资源达到阈值时, 对优先级低的进行限流. 
+
+![image-20250401164412184](./../../笔记图片/image-20250401164412184.png)
+
+链路模式:  从资源  /module2/test 到 goods  的请求超过3时, 对 goods 限流. (仅针对 从 /module2/test 到 goods 的限流, 其他资源到goods的请求不会限流)
+
+![image-20250401171212741](./../../笔记图片/image-20250401171212741.png)
+
+
+
+3.2 **流控效果**
+
+快速失败：QPS超过阈值时，拒绝新的请求
+
+warm Up: 预热模式, 请求的初始阈值是 设置的阈值 / 3, 预热时长是指多久恢复到 设置的阈值. 在 10s 内 阈值从 10 / 3 -> 10
+
+![image-20250401171839457](./../../笔记图片/image-20250401171839457.png)
+
+排队等待：请求会进入队列，按照阈值**允许的时间间隔**依次执行请求, 如果请求**预期等待时长**大于超时时间，直接拒绝. 
+
+100ms 执行放行一个请求, 超时时间是 5s
+
+![image-20250401172502462](./../../笔记图片/image-20250401172502462.png)
+
+
+
+3.3 **热点限流**
+
+热点参数限流对默认的SpringMVC资源无效, 这里的hot资源是通过 `@SentinelResource` 声明的, 参数索引是统计相同这个参数的请求, 1s 内不能超过5, 其中这个参数值为1的例外, 它的阈值可以是10
+
+![image-20250401173040771](./../../笔记图片/image-20250401173040771.png)
+
+
+
+### 4. 熔断
+
+**熔断**: 当请求满足熔断规则时(比如失败比例达到多少), 接下来一段时间的请求都直接走降级方法, 之后每隔一段时间探测一下资源是否恢复正常了, 正常的话取消熔断, 否则继续处于熔断.
+
+**熔断策略**
+
+RT 平均响应时间超过设定的阈值会触发, 会触发降级方法, 并且熔断服务, 熔断间隔时间是后面的 **时间窗口** 设置的时间
+
+![image-20250401203028420](./../../笔记图片/image-20250401203028420.png)
+
+### 5. **降级**
+
+**降级** 机制通常用于 限流 或 熔断 或 服务失败或异常时，返回简化的响应，确保系统可用。
+
+为资源设置降级方法:
+
+1. 全局降级方法, 可以通过 e 来判断时由于什么触发的降级
+
+```java
+// 根据不同异常返回不同消息
+@Component
+public class Test implements BlockExceptionHandler {
+
+    @Override
+    public void handle(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, String s, BlockException e) throws Exception {
+        httpServletResponse.setCharacterEncoding("UTF-8");
+        httpServletResponse.setContentType("text/plain;charset=UTF-8");
+        // 对不同异常返回不同结果
+        if (e instanceof FlowException) {
+            httpServletResponse.getWriter().write("请求被限流了");
+        } else if (e instanceof DegradeException) {
+            httpServletResponse.getWriter().write("请求被降级了");
+        } else if (e instanceof ParamFlowException) {
+            httpServletResponse.getWriter().write("热点参数异常");
+        } else if (e instanceof AuthorityException) {
+            httpServletResponse.getWriter().write("请求没有权限");
+        } else {
+            httpServletResponse.getWriter().write("请求被阻断了");
+        }
     }
 }
 ```
 
-#### 5.5 处理异常的处理
-当调用 `test` 时抛出了异常的话，那么就会执行 fallback 指定的方法, `exceptionsToIgnore` 指定的是忽略掉的异常。（限流的话会抛出限流的异常，也会被捕获，执行 fallback 指定的方法）
-如果 fallback 和 blockHandler 都指定了方法，出现限流异常会优先执行 blockHandler 的方法
-```java
-@Service
-public class MyService {
+2. 通过 `blockHandler` 为具体的资源设置特定的降级方法, 这个的优先级比全局的高, 如果有这个 就不会执行全局的了
 
-    @SentinelResource(value = "mytest", fallback = "except", exceptionsToIgnore = IOException.class)
-    public String test(int id) {
-        throw new RuntimeException("hello world");
+```java
+@GetMapping("/module1/test")
+@SentinelResource(value = "test", blockHandler = "blockHandlerMethod")
+public String test(@RequestParam("name") String name) {
+    if ("test".equals(name)) return "test";
+    throw new RuntimeException("test");
+}
+
+public String blockHandlerMethod(String name, BlockException blockException) {
+    System.out.println("blockHandlerMethod");
+    return "blockHandlerMethod";
+}
+```
+
+3. 通过 `fallback` 
+
+`fallback` 跟上面两给不太一样, 上面两个的触发都是在 达到限流阈值 或者 触发熔断规则时. 这里的 fallback 是当前方法发生异常时触发.
+
+```java
+@GetMapping("/module1/test")
+@SentinelResource(value = "test", fallback = "fallbackMethod")
+public String test(@RequestParam("name") String name) {
+    if ("test".equals(name)) return "test";
+    throw new RuntimeException("test");
+}
+
+public String fallbackMethod(String name, Throwable throwable) {
+    System.out.println("fallbackMethod");
+    return "fallbackMethod";
+}
+```
+
+
+
+
+
+
+
+### 5. 结合 `Feign` 使用
+
+在只有 Feign 的情况下, 只有是网络问题才会触发 Feign 设置的降级方法. 但是如果引入 Sentinel 的话, 就可以在  **超出**Sentinel的**限流阈值** 或者 满**足熔断规则后** 或者 远程的服务抛出异常 时 也触发 Feign 的降级方法了
+
+需要区分好 Feign 的降级和 Sentinel的降级. Feign的降级针对的是远程调用的服务, 而Sentinel 的降级是针对的是由 `@SentinelResource` 注解标记的资源. 如果这个资源超出限流阈值 或 满足熔断规则时会触发降级方法, 服务直接抛出异常的话也会触发降级, 不过跟上面两个的设置方式不一样.
+
+
+
+通过添加配置 来让 feign 支持 sentinel
+
+```yaml
+feign:
+  sentinel:
+    enabled: true
+```
+
+一个小坑: 如果 feign 作为一个包, 别忘记让Spring扫描到它, 不然启动时会报错
+
+```java
+@SpringBootApplication(scanBasePackages = {"com.cloud.module1", "com.cloud.feign"})
+@EnableDiscoveryClient
+@EnableFeignClients(basePackages = "com.cloud.feign")
+```
+
+
+
+为 feign 设置远程调用的降级方法: 
+
+1. 实现FallbackFactory, 并通过 fallbackFactory 属性指定
+
+```java
+@FeignClient(name = "module2", fallbackFactory = Module2ClientFallbackFactory.class)
+public interface Module2Client {
+    @GetMapping("/module2/test")
+    String module2Test();
+}
+
+@Component
+public class Module2ClientFallbackFactory implements FallbackFactory<Module2Client> {
+    @Override
+    public Module2Client create(Throwable cause) {
+        return new Module2Client() {
+            @Override
+            public String module2Test() {
+                System.err.println("Feign 调用 module2 失败，异常信息：" + cause.getMessage());
+                return "Feign 降级：module2 发生错误";
+            }
+        };
     }
-// 注意参数, 必须是跟 test 的参数列表相同, 然后可以多加一个获取异常的参数
-    public String except(int id, Throwable ex) { 
-        System.out.println("hello = " + ex.getMessage());
-        return ex.getMessage();
+}
+
+```
+
+2. 实现Module2Client, 并通过fallback属性指定
+
+```java
+
+@FeignClient(name = "module2", fallback = Module2ClientFallback.class)
+public interface Module2Client {
+    @GetMapping("/module2/test")
+    String module2Test();
+}
+
+@Component
+public class Module2ClientFallback implements Module2Client {
+    @Override
+    public String module2Test() {
+        return "这是 module2Client 的降级方法";
     }
 }
 ```
 
-#### 5.6 热点参数限流
-对接口或方法的某个参数进行限流
+
+
+### 6. 授权
+
+流控应用填写的是 Origin 中允许返回的, 每个请求都会通过 parseOrigin 解析出一个 Origin, 对于我们允许访问的, 可以给他添加到白名单中.
 
 ```java
-@GetMapping("/test1")
-@SentinelResource(value = "test1")
-public String test1(@RequestParam(required = false) String name, @RequestParam(required = false) String age) {
-    return name + " " + age;
+@Component
+public class Test implements RequestOriginParser {
+    @Override
+    public String parseOrigin(HttpServletRequest httpServletRequest) {
+        String Origin = "getaway";
+        return Origin;
+    }
 }
 ```
 
-![在这里插入图片描述](./../../../笔记/笔记图片/418ed3656ddf48a0930583ae3c973c5b.png)
-
-### 6. 熔断降级
-
-#### 6.1 **服务熔断**
-
-当某个服务的错误率或失败次数（如异常或超时）超过预设的阈值时，熔断器就会“断开”，该服务的调用将不会继续执行。熔断器“断开”后，所有请求都会被 拒绝，直到熔断器进入 **恢复阶段**，然后根据预设规则恢复正常工作。
-
-#### 6.2 熔断规则
-
-- 2.1 熔断规则
-![在这里插入图片描述](./../../../笔记/笔记图片/e2369f121582458aa34ebbcd6f8f15e3.png)
-
-熔断规则定义了什么情况下触发熔断。常见的触发条件有：
-
-- **异常比例（异常比例熔断）**：当某个资源的调用异常（如超时、返回错误等）比例超过设定的阈值时，触发熔断。
-- **错误数（错误数熔断）**：当某个资源的调用错误次数超过设定的阈值时，触发熔断。
-- **RT（响应时间熔断）**：当某个资源的调用响应时间超过设定的阈值时，触发熔断。
-
-这些规则是可以配置的，通常会在应用初始化时进行设置。
-
-- 2.2 熔断恢复机制
-	熔断后，Sentinel 会进入 **自恢复机制**，通过设定的时间窗口，逐渐恢复正常的服务调用。这一恢复过程通常包括以下两个阶段：
-
-	- **半开状态**：熔断器进入半开状态，允许一定数量的请求尝试访问该资源。此时系统会验证该资源是否已恢复，若恢复则正常调用，若失败则继续熔断。
-	- **正常状态**：如果半开状态中的请求均成功，则熔断器恢复为正常状态，恢复正常的请求处理。
-
-#### 6.3 **服务降级 (Service Degradation)**
-
-服务降级是指在某些情况下，通过返回一个默认值、简单处理或快速失败来减少服务的压力，避免因资源超载或异常请求导致服务崩溃。Sentinel 通过配置不同的降级策略，使得系统能够在流量激增或服务不稳定时自动切换到降级模式。
-
-最后简单介绍一下限流，熔断，降级之间的联系。 根据降级的概念，当出现`限流`或`熔断`的时候都会触发降级的方法，只不过`熔断`会根据自己的配置，来跟熔断的服务断开联系，不再接受请求。而`限流`的话不会断开服务，而是继续接受请求，如果请求不满足 限流规则的话，还是会进入到降级的方法
-
-## 七、服务链路追踪 
-
-在zipkin官网下载 `zipkin.jar` 包。[下载地址](https://zipkin.io/pages/quickstart.html)
-
-**Micrometer Tracing** 是 Spring 官方在现代可观测性（Observability）体系中的新工具，用于实现分布式链路追踪。
-
----
-
-### 1. 核心概念
-
-1. **Span**  
-   - 每个 Span 表示一个操作的执行过程（如调用某个方法、处理一个 HTTP 请求）。
-   - 包含操作的开始时间、持续时间、名称等信息。
-   - Trace 是由多个 Span 组成的分布式调用链。
-
-2. **Trace**  
-   - 表示分布式系统中多个服务协作完成的整体调用链。  
-   - 包括一个根 Span 和多个子 Span。
-
-3. **Context Propagation**  
-   - 在分布式系统中，需要在服务之间传递上下文（如 traceId 和 spanId），以实现跨服务的追踪。
-   - Micrometer Tracing 通过支持 W3C Trace Context 标准（OpenTelemetry 默认标准）完成上下文传递。
-
----
-
-### 2. 工作原理
-
-1. **生成和传播追踪信息**
-   - 服务 A 生成 traceId 和 spanId，并通过 HTTP header 或消息队列传递给服务 B。
-   - 服务 B 接收这些信息，继续生成新的 span 并关联到 trace。
-
-2. **采样策略**
-   - 决定是否记录 trace 数据（例如只采样部分请求以减少性能开销）。
-   - Micrometer Tracing 提供多种采样策略，可以通过配置控制。
-
-3. **导出追踪数据**
-   - Micrometer Tracing 支持将追踪数据导出到多个后端（如 Jaeger、Zipkin 或 Prometheus）。这里我们用 `zipkin`
-   - 通过 OpenTelemetry Bridge 提供对多种观察后端的支持。
-
----
-
-### 3. 简单配置
-
-在 Spring Boot 3+ 项目中，Micrometer Tracing 的依赖配置如下：
-
--  **引入依赖**
-	在 `pom.xml` 中添加以下依赖：
-	
-	```xml
-	<dependency>
-	   <groupId>org.springframework.boot</groupId>
-	    <artifactId>spring-boot-starter-actuator</artifactId>
-	</dependency>
-	<dependency>
-	    <groupId>io.micrometer</groupId>
-	    <artifactId>micrometer-tracing</artifactId>
-	</dependency>
-	<dependency>
-	    <groupId>io.micrometer</groupId>
-	    <artifactId>micrometer-tracing-bridge-brave</artifactId>
-	</dependency>
-	<dependency>
-	    <groupId>io.micrometer</groupId>
-	    <artifactId>micrometer-observation</artifactId>
-	</dependency>
-	<dependency>
-	    <groupId>io.zipkin.reporter2</groupId>
-	    <artifactId>zipkin-reporter-brave</artifactId>
-	</dependency>
-	<!-- 使用feign的话加入下面这个依赖 -->
-	<!--        <dependency>-->
-	<!--            <groupId>io.github.openfeign</groupId>-->
-	<!--            <artifactId>feign-micrometer</artifactId>-->
-	<!--        </dependency>-->
-	```
-
-
--  **配置**
-	```yaml
-	management:
-	  zipkin:
-	    tracing:
-	      endpoint: http://localhost:9411/api/v2/spans
-	  tracing:
-	    sampling:
-	      probability: 1.0 #采样率默认0.1(10次只能有一次被记录)，值越大手机越及时
-	```
-
-之后就可以访问 `http://127.0.0.1:9411` 
-
----
+![image-20250401211330246](./../../笔记图片/image-20250401211330246.png)
 
 
 
 
+
+
+
+
+
+## 七、服务链路追踪
 
