@@ -460,16 +460,9 @@ const sendName = () => {
 }
 ```
 
-3. 通过`defineExpose`（可跳过，不常用`3`！）
-父组件中`<Person ref="child_Person" />`在子组件的实例上添加上`ref`属性, 然后在`setup`中定义`const child_Person = ref();`，child_Person就是包含`子组件`暴漏出来的数据的对象(记得ref响应式对象要`.value`取值)。
-(注意: 用`child_Person`访问子组件的数据时要写在`onMounted`函数中, `onMounted`函数可以确保子组件已经被挂载, 不然可能访问不到)
-子组件中通过`let name = 'hh';    let age = 18;    defineExpose({name, age});`, 将自己要暴漏出去的写在`defineExpose`中
 
-### 3. 子组件修改父组件的数据
 
-`<script setup></script>`如果是在这个中通过`defineProps`中过去的父组件数据的话, 可以直接修改父组件的数据
-
-### 4. mitt自定义事件管理库
+### 3. mitt自定义事件管理库
 
 上面讲到的`3.2`的第二种自定义事件一般用于子组件和父组件, 但对于层级较深的就需要一层一层传递，很麻烦， mitt就可以很好帮我们解决问题
 
