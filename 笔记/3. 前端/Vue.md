@@ -544,7 +544,15 @@ PersonStore.name = 'ld'
 PersonStore.changeName('ld');	// 
 ```
 
-对于PersonStore解构出来的数据跟`1.2`中讲的一样也是不再具有响应式，我们可以用`storeToRefs`来解构。(虽然也可以用toRefs，但非常不建议)
+3. `storeToRefs`
+
+对于PersonStore解构出来的数据跟`1.2`中讲的一样也是不再具有响应式，我们可以用`storeToRefs`来解构。(虽然也可以用toRefs，但非常不建议)。
+
+```js
+const { isDark } = storeToRefs(useWebInfo())	// 这样的话还具有响应式
+```
+
+
 
 
 4.3 和 4.4 是选项式的写法, 可以仅作了解

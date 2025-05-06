@@ -1,5 +1,316 @@
 ![image-20250224113745904](./../../笔记图片/image-20250224113745904.png)
 
+
+
+### 1. 窗口函数
+
+MySQL 的窗口函数允许在查询中对数据进行分组计算，同时保留每行数据的独立性。与聚合函数（如 SUM、AVG）不同，窗口函数不会将多行聚合成一行，而是为每一行返回一个计算结果，通常用于分析和排名场景。窗口函数是在一个“窗口”（上执行计算的函数。窗口由 OVER 子句定义，通常基于某些列进行分区（类似 GROUP BY）或排序。
+
+
+
+```sql
+<窗口函数>(<表达式>) OVER (
+    [PARTITION BY <列名1>, <列名2>, ...]
+    [ORDER BY <列名> [ASC|DESC], ...]
+    [ROWS 或 RANGE <窗口框架>]
+)
+```
+
+**窗口函数**：可以是`排名函数（如 RANK）`、`聚合函数（如 SUM）`、`值函数（如 LAG）`等。排名窗口函数不支持动态的窗口大小选项，而是以整个分区作为分析的窗口。
+
+- 排名函数：用于生成排名或序号
+
+  - ROW_NUMBER()：为每行分配一个唯一的序号（即使值相同）。
+
+  - RANK()：生成排名，相同值排名相同，后续排名会有间隔（例如 1,1,3）。
+
+  - DENSE_RANK()：生成排名，相同值排名相同，后续排名连续（例如 1,1,2）。
+  - CUMEDIST函数计算当前行在分区内的累积分布，排序后可以求薪资百分比，小于等于4000的占0.几
+
+  - NTILE(n)：将分区内的行分成 n 个等份，返回每行的组号。
+
+- 聚合函数：常见的聚合函数可以用作窗口函数，计算窗口内的统计值
+
+  - SUM()：窗口内值的总和。
+
+  - AVG()：窗口内值的平均值。
+
+  - COUNT()：窗口内行的数量。
+
+  - MAX()：窗口内的最大值。
+
+  - MIN()：窗口内的最小值。
+
+- 值函数：用于访问窗口内其他行的数据
+
+  - LAG(<列>, n)：返回前 n 行的值，默认 n=1。
+
+  - LEAD(<列>, n)：返回后 n 行的值，默认 n=1。
+
+  - FIRST_VALUE(<列>)：返回窗口内第一个值。
+
+  - LAST_VALUE(<列>)：返回窗口内最后一个值。
+
+  - NTH_VALUE(<列>, n)：返回窗口内第 n 个值。
+
+
+
+**OVER 子句**：定义窗口的范围和计算方式。
+
+- **PARTITION BY**：将数据分成多个分区，窗口函数在每个分区内独立计算，类似 **GROUP BY**。
+- **ORDER BY**：指定窗口内行的排序方式，影响某些窗口函数（如累计总和）的计算顺序。
+- **ROWS** 或 **RANGE**：定义窗口框架，即窗口函数计算时考虑的行范围（如前 N 行或某个值范围）。
+
+
+
+**窗口框架**指定窗口函数计算的行范围，默认情况下是整个分区。如果指定了 ORDER BY，默认框架是从分区开头到当前行。框架语法如下：
+
+- ROWS：基于行数定义窗口（如前 3 行）。
+
+- RANGE：基于值范围定义窗口（如值在某个范围内的行）。
+
+- 起始点和结束点：
+
+  - UNBOUNDED PRECEDING：分区开头。 unbounded preceding
+
+  - CURRENT ROW：当前行。 current row
+
+  - n PRECEDING：前 n 行（或值范围）。  precending
+
+  - n FOLLOWING：后 n 行（或值范围）。  following
+
+  - UNBOUNDED FOLLOWING：分区末尾。 unbounded following
+
+如果有 ORDER BY，默认框架是 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW。
+
+如果没有 ORDER BY，默认框架是整个分区（即 ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING）。
+
+```sql
+窗口包括当前行及前 2 行。
+
+SELECT
+    salesperson,
+    region,
+    sale_amount,
+    sale_date,
+    SUM(sale_amount) OVER (
+        PARTITION BY region
+        ORDER BY sale_date
+        ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+    ) AS moving_sum
+FROM sales
+ORDER BY region, sale_date;
+```
+
+```sql
+当省略 BETWEEN ... AND ... 时，MySQL 隐式地将框架的结束点设置为 CURRENT ROW。
+SUM(sale_amount) OVER (
+    PARTITION BY region
+    ORDER BY sale_date
+    ROWS UNBOUNDED PRECEDING
+)
+
+等价于：
+SUM(sale_amount) OVER (
+    PARTITION BY region
+    ORDER BY sale_date
+    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+)
+```
+
+示例：
+
+```sql
+计算当前，5天前的转账总和
+WITH t AS (
+    SELECT
+        log_ts,
+        from_user,
+        SUM(amount) OVER (
+            PARTITION BY from_user
+            ORDER BY log_ts
+            RANGE BETWEEN INTERVAL '5' DAY PRECEDING AND CURRENT ROW
+        ) AS total_amount
+    FROM transfer_log
+    WHERE type = '转账'
+)
+SELECT *
+FROM t
+WHERE total_amount >= 1000000;
+```
+
+
+
+### 2. 常用方法
+
+#### 2.1 字符串
+
+`CONCAT(str1, str2, ...)`: 连接多个字符串。
+
+`CONCAT_WS(separator, str1, str2, ...)`: 使用指定分隔符连接字符串，跳过 NULL 值。
+
+`TRIM([BOTH|LEADING|TRAILING] [remstr] FROM str)`: 移除字符串两端（或指定端）的指定字符（默认移除空格）。例如：TRIM('  Hello  ') 返回 'Hello'。
+
+`UPPER(str)`: 将字符串转换为大写。
+
+`LOWER(str)`: 将字符串转换为小写。
+
+#### 2.2 数字
+
+`ABS(x)`: 返回绝对值。
+
+`ROUND(x, [d])`: 四舍五入到指定小数位。例如：ROUND(3.14159, 2) 返回 3.14。
+
+`CEIL(x) / CEILING(x)`: 向上取整。
+
+`FLOOR(x)`: 向下取整。
+
+`RAND()`: 返回 0 到 1 之间的随机数。
+
+#### 2.3 日期
+
+`NOW()`: 返回当前日期和时间。例如：NOW() 返回 '2025-05-06 12:34:56'。
+
+`CURDATE()` : 返回当前日期。例如：CURDATE() 返回 '2025-05-06'。
+
+`CURTIME()`: 返回当前时间。例如：CURTIME() 返回 '12:34:56'。
+
+`DATE_ADD(date, INTERVAL expr unit)`: 日期加法。例如：`DATE_ADD('2025-05-06', INTERVAL 1 DAY)` 返回 '2025-05-07'。
+
+`DATE_SUB(date, INTERVAL expr unit)`: 日期减法。例如：`DATE_SUB('2025-05-06', INTERVAL 1 MONTH)` 返回 '2025-04-06'。
+
+`DATEDIFF(expr1, expr2)`: 返回两个日期之间的天数差。例如：`DATEDIFF('2025-05-06', '2025-05-01')` 返回 5。
+
+`DATE_FORMAT(date, format)`: 格式化日期。例如：DATE_FORMAT('2025-05-06', '%Y-%m-%d') 返回 '2025-05-06'。
+
+`YEAR(date), MONTH(date), DAY(date)`: 提取日期的年、月、日。例如：YEAR('2025-05-06') 返回 2025。
+
+`HOUR(time), MINUTE(time), SECOND(time)`: 提取时间的时、分、秒。例如：HOUR('12:34:56') 返回 12。
+
+
+
+### 3. 创建语句
+
+```sql
+CREATE [TEMPORARY] TABLE [IF NOT EXISTS] table_name (
+    column_name1 data_type [column_constraints] comment 'test',
+    column_name2 data_type [column_constraints],
+    ...
+    [CONSTRAINT 约束名] [table_constraints]
+) [table_options];
+```
+
+数据类型：
+
+1. 数值：`TINYINT`（1 字节）、`SMALLINT`（2 字节）、`INT`（4 字节）、`DOUBLE` 、`DECIMAL(M, D)` 适合精确计算，M 是总位数，D 是小数位数，DECIMAL(10, 2) 表示 10 位数字，其中 2 位是小数。（数值类型可以加 `(numb)` numb指定的是这个数值显示的位数，搭配 `zerofill` 可以实现左侧填充0 ，注意，ZEROFILL 会让列变成无符号的类型）
+
+2. 字符串：`CHAR(n)`: 固定长度字符串，最大 255 字节。`VARCHAR(n)`: 可变长度字符串，最大 65,535 字节（受字符集影响）
+
+3. 日期：`DATE`日期，格式 YYYY-MM-DD、`TIME` 时间，格式 HH:MM:SS、`DATETIME`日期和时间，格式 YYYY-MM-DD HH:MM:SS、YEAR年份，存储 1901 到 2155。
+4. 其他：`ENUM('value1', 'value2', ...)`枚举类型，仅允许指定值。例如：ENUM('male', 'female')、`BOOLEAN`
+
+约束：
+
+`NOT NULL`: 列值不能为空。
+
+`DEFAULT value`: 指定列的默认值。例如：status ENUM('active', 'inactive') DEFAULT 'active'。其中对于动态值，如 curdate() 需要用括号包裹起来。`default (curdate())`
+
+`AUTO_INCREMENT`: 自动递增，通常用于主键。值从 1 开始递增，唯一且非空。
+
+`PRIMARY KEY`: 定义列为主键，确保值唯一且非空。例如：id INT PRIMARY KEY。
+
+`UNIQUE`: 确保列值唯一（允许 NULL）。
+
+#### 3.1 外键
+
+外键（Foreign Key）：一个表中的列（或多列），其值必须引用`另一个表的主键或唯一键列`的值。
+
+其中，包含主键或唯一键的表是父表，包含外键的表是子表
+
+`FOREIGN KEY (column1, column2, ...) REFERENCES parent_table (parent_column1, parent_column2, ...) [ON DELETE action] [ON UPDATE action]`
+
+action是定义父表记录删除或更新时的行为，它可以是：
+
+`RESTRICT`：阻止父表记录的删除或更新，除非子表中没有相关记录。（**默认行为**）
+
+`CASCADE`：删除父表记录时，子表中对应的记录也被删除。更新父表主键/唯一键时，子表外键值同步更新。
+
+`SET NULL`：父表记录删除/更新时，子表外键列置为 NULL（要求外键列允许 NULL）。
+
+
+
+### 4. 修改语句
+
+#### 4.1 插入删除
+
+`insert into tableName () values ()`：
+
+```sql
+insert [ignore] into actor (col1, col2, col3, ...) 
+
+values (val1, val2, val3, ...), (val1, val2, val3, ...)
+```
+
+`insert into tableName () (select ...)` ：
+
+```sql
+insert into actor_name (first_name, last_name) 
+(select first_name, last_name from actor)
+```
+
+`delete from tableName where...`
+
+写操作和读操作不能在一个语句中同时使用一个表
+
+```sql
+delete from titles_test where id not in (
+    select tmp.min_id from 
+    (select min(id) as min_id from titles_test group by emp_no) as tmp
+)
+```
+
+
+
+#### 4.2 索引
+
+创建索引：`alter table tableName`
+
+```sql
+ALTER TABLE actor
+    ADD UNIQUE INDEX uniq_idx_firstname (first_name),
+    ADD INDEX idx_lastname (last_name);
+```
+
+删除索引：
+
+```sql
+ALTER TABLE actor
+    DROP INDEX uniq_idx_firstname,
+    DROP INDEX idx_lastname;
+    DROP PRIMARY KEY
+;
+```
+
+#### 4.3 视图
+
+创建视图：`create view viewName as select...`
+
+```sql
+CREATE VIEW viewName (fname, lname) AS
+SELECT first_name, last_name
+FROM actor_name;
+```
+
+删除视图：
+
+```sql
+DROP VIEW IF EXISTS viewName;
+```
+
+
+
+
+
 ## 一、存储引擎
 
 ### 1. 讲一讲mysql的引擎吧，你有什么了解？

@@ -98,6 +98,7 @@ Spring Cloud 是一套基于 Spring Boot 的框架集合，用于构建分布式
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            </dependencies>
     </dependencyManagement>
 
     <build>
@@ -276,6 +277,8 @@ docker run -d --name nacos \
     nacos/nacos-server:v2.3.2
 ```
 
+启动后访问地址是：`http://192.168.253.128:8848/nacos` ，记得加上 `/nacos`，不然访问不了
+
 
 
 ### 2. SpringBoot 配置
@@ -324,6 +327,9 @@ docker run -d --name nacos \
    @RestController
    @RefreshScope
    public class TestController {
+       
+       @Value("#{'${jwt.white-list}'.split(',')}")
+        private List<String> WHITE_LIST;
    
        @Value("${hello}")
        private String hello;

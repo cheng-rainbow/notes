@@ -6,7 +6,7 @@ Tomcat是一个Servlet容器，当http请求发送到 Tomcat 监听的端口后�
 
 HttpServletRequest和HttpServletResponse都只是servlet提供的标准接口，Tomcat对它们有具体的实现类，所以这里我们接收参数用的是接口
 
-HttpServlet 是实现了 Servlet 接口的一个处理Http请求的类，它在service方法中对get、post、put等不同类型的请求调用不同的doget,dopost 等方法，所以，我们只需要继承 `HttpServlet` ，并修改对用的 get 或 post 的方法即可，service 方法不需要修改，继承自HttpServlet即可，因为默认的HttpServlet的实现是根据不同类型的请求，调用不同的方法(get，post)
+`HttpServlet` 是实现了 Servlet 接口的一个处理Http请求的类，它在`service方法`中对get、post、put等不同类型的请求调用不同的doget,dopost 等方法，所以，我们只需要继承 `HttpServlet` ，并修改对用的 get 或 post 的方法即可，service 方法不需要修改，继承自HttpServlet即可，因为默认的HttpServlet的实现是根据不同类型的请求，调用不同的方法(get，post)
 
 1. 启动Servlet扫描
 
@@ -71,7 +71,7 @@ Hello, Servlet! 你好，Servlet!
 
 #### 2.2 控制过滤器的执行顺序
 
-通过SpringBoot实现
+通过SpringBoot实现，控制过滤器的执行顺序。（也可以通过filter的xml文件来控制，但不能通过@WebFilger来控制）
 
 ```java
 // 不需要@WebFilger
