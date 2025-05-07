@@ -1,5 +1,19 @@
 ![image-20250224113745904](./../../笔记图片/image-20250224113745904.png)
 
+`limit 10 offset 20` 相当于是返回第20行到30行数据，也可以写成`limit 20, 10` 
+
+`exists(子查询)`
+
+```sql
+SELECT *
+FROM employees e
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM dept_emp de
+    WHERE de.emp_no = e.emp_no
+);
+```
+
 
 
 ### 1. 窗口函数
@@ -155,6 +169,26 @@ WHERE total_amount >= 1000000;
 
 `LOWER(str)`: 将字符串转换为小写。
 
+`length(str)`:  求字符串的长度
+
+`replace(str, ',', '')`: 替换字符串中的内容
+
+`SUBSTRING(字符串, 起始位置, [长度])`
+
+`SELECT SUBSTRING_INDEX('A,B,C,D', ',', 2)`: 返回第2个逗号前的子串 → 'A,B
+
+```sql
+GROUP_CONCAT(
+    [DISTINCT] 列
+    [ORDER BY 排序列 [ASC | DESC]]
+    [SEPARATOR 分隔符]
+) AS 别名
+
+select dept_no, group_concat(emp_no order by emp_no SEPARATOR ',') as employees from dept_emp group by dept_no
+```
+
+
+
 #### 2.2 数字
 
 `ABS(x)`: 返回绝对值。
@@ -239,9 +273,9 @@ action是定义父表记录删除或更新时的行为，它可以是：
 
 
 
-### 4. 修改语句
+### 4. 修改数据的语句
 
-#### 4.1 插入删除
+#### 4.1 插入
 
 `insert into tableName () values ()`：
 
@@ -258,6 +292,8 @@ insert into actor_name (first_name, last_name)
 (select first_name, last_name from actor)
 ```
 
+#### 4.2 删除
+
 `delete from tableName where...`
 
 写操作和读操作不能在一个语句中同时使用一个表
@@ -269,42 +305,82 @@ delete from titles_test where id not in (
 )
 ```
 
+#### 4.3 修改
+
+`update tableName set col1 = val1, col2 = val2 where ...`
+
+```sql
+UPDATE 表名
+SET 列名1 = 新值1, 列名2 = 新值2, ...
+WHERE 条件;
+
+UPDATE 表名
+SET 列名 = REPLACE(列名, '旧字符串', '新字符串')
+WHERE 条件;
+```
 
 
-#### 4.2 索引
+
+### 5. 修改表结构
+
+#### 5.1 重命名
+
+```sql
+alter table titles_test rename to titles_2017
+```
+
+#### 5.2 索引
 
 创建索引：`alter table tableName`
 
 ```sql
-ALTER TABLE actor
-    ADD UNIQUE INDEX uniq_idx_firstname (first_name),
-    ADD INDEX idx_lastname (last_name);
+alter table actor
+    add unique index uniq_idx_firstname (first_name),
+    add index idx_lastname (last_name);
 ```
 
 删除索引：
 
 ```sql
-ALTER TABLE actor
-    DROP INDEX uniq_idx_firstname,
-    DROP INDEX idx_lastname;
-    DROP PRIMARY KEY
+alter table actor
+    drop index uniq_idx_firstname,
+    drop index idx_lastname;
+    drop primary key
 ;
 ```
 
-#### 4.3 视图
+#### 5.3 约束
+
+```sql
+alter table 子表名
+add constraint 外键名 foreign key (子表列名)
+references 主表名 (主表列名)
+[ON DELETE 动作] [ON UPDATE 动作];
+```
+
+#### 5.4 插入新列
+
+```sql
+```
+
+
+
+
+
+### 6. 视图
 
 创建视图：`create view viewName as select...`
 
 ```sql
-CREATE VIEW viewName (fname, lname) AS
-SELECT first_name, last_name
-FROM actor_name;
+create view viewName (fname, lname) AS
+select first_name, last_name
+from actor_name;
 ```
 
 删除视图：
 
 ```sql
-DROP VIEW IF EXISTS viewName;
+drop view if exists viewName;
 ```
 
 
