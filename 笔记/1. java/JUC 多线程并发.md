@@ -95,6 +95,7 @@ private static final Logger log = LoggerFactory.getLogger(Main.class);
 	// t1.start();
 	```
 3. **FutureTask** 是一个既可以作为任务执行器又可以获取**任务结果**。它实现了 **Runnable** 和 **Future** 接口，因此可以用来创建和管理线程任务，同时可以获取任务的执行结果。
+	
 	```java
 	// 创建任务
 	FutureTask<Integer> task = new FutureTask<>(new Callable<Integer>() {
@@ -110,7 +111,7 @@ private static final Logger log = LoggerFactory.getLogger(Main.class);
 	Thread t1 = new Thread(task, "t1");
 	t1.start();
 	
-	Integer returnValue = task.get();   // 会阻塞在这里，知道获取到返回值
+	Integer returnValue = task.get();   // 会阻塞在这里，直到获取到返回值
 	System.out.println(returnValue);
 	```
 
@@ -373,7 +374,6 @@ public class Main {
 
 ## 三、多线程常见内容
 
-
 **临界区**：在并发编程中，一段需要访问共享资源的代码区域，并且这个代码区存在多个线程的写操作。
 
 **竞态条件**：在并发程序中，多个线程并发访问共享资源时，在没有正确同步控制的情况下并发地访问共享资源，从而导致不可预测的结果。
@@ -451,7 +451,7 @@ public class Main {
 
 synchronized 用于方法上时，分为两种，实例方法和静态方法
 
-##### 实例方法
+1. 实例方法
 
 当 synchronized 用于**实例方法**时，它会 锁住调用该方法的实例对象。也就是说，同一个类的不同线程对同一个对象调用同步实例方法时，会排队等候执行，不能同时执行该方法。
 
@@ -470,7 +470,7 @@ class Test {
 //    }
 }
 ```
-##### 静态方法
+2. 静态方法
 
 当 synchronized 用于**静态方法**时，它会 锁住类的 Class 对象（class对象对所有实例都共享，只有一份），即锁住整个类的类级别的资源，所有实例共享同一个锁。
 
@@ -603,10 +603,13 @@ class Test {
 
 传统线程安全的类一般包含 通过 `synchronized` 关键字来保证线程安全和通过不可变的性质，保证多个线程中不会出现并发修改的情况
 ##### 1. 通过 `synchronized` 来保证线程安全
-###### **`Vector`**
+**`Vector`**
+
 - **描述**：`Vector` 是线程安全的动态数组，它的实现类似于 `ArrayList`，但每个方法都通过 `synchronized` 关键字来保证线程安全。
 - **特点**：虽然 `Vector` 是线程安全的，但由于 `synchronized` 操作可能会造成性能瓶颈，现在更推荐使用 `ArrayList` 或 `CopyOnWriteArrayList`，并手动加锁。
-###### **`Hashtable`**
+
+ **`Hashtable`**
+
 - **描述**：`Hashtable` 是一个线程安全的哈希表实现，每个方法都通过 `synchronized` 来保证线程安全。类似于 `ConcurrentHashMap`，但效率较低。
 - **特点**：`Hashtable` 的性能较差，因为它对每个方法调用都加了同步锁，限制了并发性能。推荐使用 `ConcurrentHashMap` 替代。
 
@@ -615,11 +618,13 @@ class Test {
 
 不可变类天生是线程安全的，因为它们的状态一旦创建就无法改变。这种类的对象在多个线程中共享时，不会出现并发修改的问题。
 
-######  **`String`**
+**`String`**
+
 - **描述**：`String` 是不可变类。一旦创建后，`String` 对象的内容无法被修改，因此它是线程安全的。
 - **特点**：由于 `String` 的不可变性，多个线程可以同时共享同一个 `String` 实例。
 
-######  **`Integer`, `Long`, `Double` 等包装类**
+**`Integer`, `Long`, `Double` 等包装类**
+
 - **描述**：这些数值包装类是不可变的，因此它们也是线程安全的。
 - **特点**：与 `String` 类似，这些包装类的对象在创建后无法修改，因此它们可以安全地被多个线程共享。
 
@@ -643,6 +648,7 @@ HotSpot JVM 中，对象头的结构大致可以分为以下两部分：
 ![在这里插入图片描述](./../../笔记图片/29bb04091b1b4b3bbe71e9422e293c77.png)
 如果 synchronized 代码块出现了异常，jvm 也会自动释放该锁，避免其他线程一直无法获取到锁
 下面是编译后的 .class 二进制文件，我们通过 `javap -c Main.class` 反编译弄成可读性更强的jvm指令。观察可以看到编译后的指令确实可以在代码块出现异常时自动释放锁
+
 ```java
  public static void main(java.lang.String[]);
     Code:
@@ -686,6 +692,7 @@ Java 中的轻量级锁主要依赖于 Java 的内存模型和 CAS 操作。其�
 - **重量级锁状态**：当多个线程竞争同一把锁，或者轻量级锁无法成功通过 CAS 设置时，锁会升级为重量级锁，导致线程的阻塞和上下文切换。
 
 ######  1.2 **锁的状态**
+
 Java 对象的 `Mark Word` 存储了锁的信息，它有多个状态：
 - **无锁状态**：表示对象没有被任何线程持有锁。
 - **轻量级锁**：表示有一个线程持有锁，其他线程正在竞争锁时会失败。
@@ -833,13 +840,13 @@ public static void main(String[] args) throws InterruptedException {
 }
 ```
 
-**`wait()` 和 `notify()` 必须在同步块中调用**：这些方法需要在 `synchronized` 块中调用，也就是调用的线程必须获得了当前的锁才可以调用。(wait()也可以传入一个数字，表示最多等待的时间)
+**`wait()` 和 `notify()` 必须在同步块中调用**：这些方法需要在 `synchronized` 块中调用，也就是调用的线程必须获得了当前的锁才可以调用。(`wait()`也可以传入一个数字，表示最多等待的时间)
 
 #### 4.2 `wait` 和 `sleep` 的区别
 
 1. sleep 是Thread方法，而 wait 是Object 的方法
 2. sleep 不需要强制和 synchronized 配合使用，但 wait 需要和 synchronized一起用
-3. sleep 在睡眠的同时，不会释放对象锁的，但wait在等待的时候会释放对象锁
+3. **`sleep` 在睡眠的同时，不会释放对象锁的，但`wait`在等待的时候会释放对象锁**
 
 ### 5. park 和 unpark
 
@@ -1012,7 +1019,7 @@ Found one Java-level deadlock:
 ### 7. ReentrantLock 
 
 
-ReentrantLock 是一种比 synchronized 更加灵活和强大的锁机制，适用于需要更多控制的并发场景。但由于其手动管理的特性，它也带来了更多的复杂性。在高并发或复杂的场景下，ReentrantLock 提供了更多的功能和性能优势。
+`ReentrantLock` 是一种比 synchronized 更加灵活和强大的锁机制，适用于需要更多控制的并发场景。但由于其手动管理的特性，它也带来了更多的复杂性。在高并发或复杂的场景下，ReentrantLock 提供了更多的功能和性能优势。
 
 #### **7.1 主要特点：**
 
@@ -1488,6 +1495,7 @@ CAS 通常依赖底层的硬件指令，对于 x86 架构，LOCK CMPXCHG 是用�
 
 使用示例（以 `AtomicInteger` 为例）：
 sum = 100000000，创建 10000 个线程，每个线程让sum减去 10000，最后输出正确值0。Test1 类是正常无锁，无法保证原子性，最后输出不是0，Test2 类是使用 `AtomicInteger` 保证原子性，最后输出正确结果0
+
 ```java
 public class Main {
     private static final Logger logger = LoggerFactory.getLogger(Main.class);
@@ -2148,7 +2156,6 @@ executor.shutdown();
 
 `shutdownNow()` 方法也用于关闭线程池，但它的行为与 `shutdown()` 方法不同。`shutdownNow()` 会尽量停止正在执行的任务，尝试中断正在运行的任务，并把尚未执行的任务列表返回。
 
-- **用法**：
 ```java
 ExecutorService executor = Executors.newFixedThreadPool(3);
 // 提交任务
@@ -2578,7 +2585,7 @@ public static void main(String[] args) throws InterruptedException {
 
 #### 4.2 BlockingQueue
 
-`BlockingQueue` 是一个用于多线程环境下的线程安全队列，它有多种实现类，常见的有 `ArrayBlockingQueue`、`LinkedBlockingQueue`、`PriorityBlockingQueue` 和 `DelayQueue`。`BlockingQueue` 提供了阻塞的 `put()` 和 `take()` 方法，可以在队列为空时等待获取数据，或在队列满时等待添加数据。
+`BlockingQueue` 是一个用于多线程环境下的线程安全队列，它有多种实现类，常见的有 `ArrayBlockingQueue`、`LinkedBlockingQueue`、`PriorityBlockingQueue` 和 `DelayQueue`。`BlockingQueue` 提供了阻塞的 `put()` 和 `take()` 方法，可以在队列为空时等待获取数据，或在队列满时等待添加数据。	
 
 **常用实现：**
 
