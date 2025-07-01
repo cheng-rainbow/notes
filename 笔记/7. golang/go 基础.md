@@ -85,23 +85,29 @@ Go语言的设计目标是解决现代软件开发中的常见问题，尤其是
 
 ## 二、数据类型和声明
 
+golang的数据类型分为 **值类型** 和 **引用类型**
+
+值类型：所有基本类型数据、数组
+
+其他的为引用类型
+
 ### 1. 基本数据类型
 
 **整形**
 
+- int：平台相关（32位或64位系统上为32位或64位）
 - int8：8位，范围 -128 到 127
 - int16：16位，范围 -32,768 到 32,767
 - int32：32位，范围 -2,147,483,648 到 2,147,483,647
 - int64：64位，范围 -2^63 到 2^63-1
-- int：平台相关（32位或64位系统上为32位或64位）
 
 
 
+- uint：平台相关（32位或64位系统上为32位或64位）
 - uint8：8位，范围 0 到 255（等同于byte）
 - uint16：16位，范围 0 到 65,535
 - uint32：32位，范围 0 到 4,294,967,295
 - uint64：64位，范围 0 到 2^64-1
-- uint：平台相关
 
 
 
@@ -114,13 +120,11 @@ string：不可变的字节序列，通常存储UTF-8编码的文本。
 
 支持索引（返回byte）和切片操作，但不能直接修改。
 
-**布尔型**
-
-bool：表示真（true）或假（false）。
-
-布尔运算包括&&（与）、||（或）、!（非）。
+**布尔型**：bool 表示真（true）或假（false）。
 
 **浮点型**
+
+float：平台相关（32位或64位系统上为32位或64位）
 
 float32：32位浮点数，约6-7位有效数字。
 
@@ -136,95 +140,27 @@ complex128：由两个float64组成，Go中默认复数类型。
 
 ### 2. 复合数据类型
 
-**数组**
+**数组**：固定长度、相同类型的元素序列。长度是数组类型的一部分，定义后不可变。
 
-固定长度、相同类型的元素序列。
+**切片**：动态长度、可变数组，基于数组的引用类型。包含指针、长度（len）和容量（cap）。
 
-长度是数组类型的一部分，定义后不可变。
+**映射**：键值对集合，类似Python的字典。
 
-语法：[n]T，n是长度，T是元素类型。
+**结构体**：自定义类型，聚合多个字段。
 
-**切片**
+**指针**：存储变量的内存地址。
 
-动态长度、可变数组，基于数组的引用类型。
+**接口**：定义方法集合，类型通过实现方法隐式满足接口。
 
-包含指针、长度（len）和容量（cap）。
+**函数类型**：函数可以作为类型，用于回调或高阶函数。
 
-语法：[]T。
-
-**映射**
-
-键值对集合，类似Python的字典。
-
-语法：map[K]V，K是键类型，V是值类型。
-
-键必须支持==比较操作。
-
-**结构体**
-
-自定义类型，聚合多个字段。
-
-语法：struct { field1 Type1; field2 Type2; ... }。
-
-**指针**
-
-存储变量的内存地址。
-
-语法：*T表示指向类型T的指针，&x获取变量x的地址。
-
-Go没有指针运算（如C的ptr++）。
-
-**接口**
-
-定义方法集合，类型通过实现方法隐式满足接口。
-
-空接口interface{}可表示任意类型。
-
-**函数类型**
-
-函数可以作为类型，用于回调或高阶函数。
-
-语法：func(param1 Type1, param2 Type2) ReturnType。
+**Channel**：用于goroutine间通信的类型。
 
 
 
-### 3. 其他类型
+### 3. 声明变量
 
-**Channel**
-
-用于goroutine间通信的类型。
-
-语法：chan T（无缓冲通道），make(chan T, n)（有缓冲通道）。
-
-**自定义类型**
-
-使用type关键字定义新类型，基于现有类型。
-
-常用于增强代码可读性或添加方法。
-
-
-
-### 4. 类型转换和默认值
-
-Go是强类型语言，类型之间需要显式转换，不能隐式转换。
-
-- 语法：T(v)，将值v转换为类型T。
-
-
-
-Go中未初始化的变量会自动赋值为类型的零值：
-
-- int, float32, float64：0
-- bool：false
-- string：""（空字符串）
-- 指针、切片、映射、通道、接口：nil
-- 结构体：字段均为零值
-
-
-
-### 5. 声明方式
-
-1. 通过 `var`，语法：`var 变量名 类型`
+1. **var**
 
 ```go
 func main() {
@@ -237,37 +173,7 @@ func main() {
 }
 ```
 
-2. 声明**多个变量**
-
-```go
-func main() {
-	var x, y, z int = 0, 1, 2
-	var (
-		name string = "ld"
-		age  int    = 18
-	)
-
-	fmt.Println("Initial values:", x, y, z)
-	fmt.Printf("name: %v\n", name)
-	fmt.Printf("age: %v\n", age)
-}
-```
-
-3. 包级别变量
-
-```go
-package main
-
-import "fmt"
-
-var globalVar int = 100 // 包级别变量
-
-func main() {
-    fmt.Println(globalVar) // 输出: 100
-}
-```
-
-4. **短声明**
+2. **短变量声明**
 
 短变量声明是Go中最常用的声明方式，仅限于函数内部，通过 := 自动推导变量类型。
 
@@ -281,6 +187,7 @@ package main
 
 import "fmt"
 
+name := "ld" // 不合法，短变量不能声明全局对象
 func main() {
     x := 10	// 合法，自动推导为 int
     x, y := 20, 30 // 合法，y是新变量，x被重新赋值
@@ -289,42 +196,891 @@ func main() {
 }
 ```
 
+3. 声明**多个变量**
 
+```go
+func main() {
+	var x, y, z int = 0, 1, 2
+	var (
+		name string = "ld"
+		age = 18
+	)
 
+	fmt.Println("Initial values:", x, y, z)
+	fmt.Printf("name: %v\n", name)
+	fmt.Printf("age: %v\n", age)
+}
+```
 
+4. **匿名变量 `_`**
 
-### 6. 变量相关的补充
+匿名变量不占用命名空间，不会分配内存
 
-1. **常量**声明
+```go
+import "fmt"
 
-Go中的常量使用 const 关键字声明，值在编译时确定且不可更改。常量可以是基本类型（如数字、字符串、布尔值）。
+func test() (string, int) {
+	return "ld", 18
+}
 
-2. 未使用变量的限制
+func main() {
+	username, _ := test()
+	fmt.Println("Username:", username)
+	// fmt.Println("Age:", age)
+}
+```
 
-Go对变量的使用有严格要求，未使用的变量会导致编译错误。这种设计鼓励代码简洁。（使用变量（如打印或赋值）、使用空白标识符 _ 忽略变量）
+5. 常量 **const**
 
-3. 变量**作用域**
+Go中的常量使用 const 关键字声明，值在编译时确定且不可更改。
 
-   - 函数内变量：仅在函数内有效。
+```go
+func main() {
+	const (
+		a int = 1
+		b
+		c
+	)
+	fmt.Println(a, b, c) // 如果是 const 定义多个字段，后续字段不写的话，默认是第一个值
+}
+// 输出
+1, 1, 1
+```
 
-   - 包级别变量：在整个包内可见。
-
-   - 大写变量名：以大写字母开头的变量是导出变量，可在包外访问。
-
-   - 小写变量名：以小写字母开头的变量是非导出变量，仅限包内访问。
-
-4. Go允许通过 **type** 关键字定义类型**别名**，通常用于增强代码可读性或兼容性。
+`iota` 只能在 const 中使用，iota 会在每行 + 1，并赋值给该行没有初始值的常量
 
 ```go
 package main
 
 import "fmt"
 
-type MyInt int
-
 func main() {
-    var x MyInt = 42
-    fmt.Println(x) // 输出: 42
+	const (
+		a = iota
+		b = 100
+		c = iota
+		d
+	)
+	fmt.Println(a, b, c, d)
+}
+
+// 输出
+0 100 2 3
+```
+
+6. **命名规则**
+
+大写字母开头（如 UserName）：变量是公开的（exported），可以在包外访问。
+
+小写字母开头（如 userName）：变量是私有的（unexported），仅在当前包内可见。
+
+```go
+package main
+
+var PublicVar = "I'm public"  // 可被其他包访问
+var privateVar = "I'm private" // 仅在本包内可访问
+```
+
+7. **类型转换**
+
+Go是强类型语言，类型之间需要显式转换，不能隐式转换。`T(v)`，将值v转换为类型T。
+
+
+
+8. **默认初始值**
+
+   - int, float32, float64：0
+
+   - bool：false
+
+   - string：""（空字符串）
+
+   - 指针、切片、映射、通道、接口：nil
+
+   - 结构体：字段均为零值
+
+
+
+### 4. 格式化输出
+
+格式化动词以 % 开头，用于指定数据的输出格式。以下是一些常见的格式化动词：
+
+| 动词 | 描述                     | 示例代码                  | 输出     |
+| ---- | ------------------------ | ------------------------- | -------- |
+| %v   | 默认格式（值的默认表示） | fmt.Printf("%v", 42)      | 42       |
+| %T   | 值的类型                 | fmt.Printf("%T", 42)      | int      |
+| %s   | 字符串                   | fmt.Printf("%s", "hello") | hello    |
+| %f   | 浮点数（默认6位小数）    | fmt.Printf("%f", 3.14159) | 3.141590 |
+| %b   | 二进制                   | fmt.Printf("%b", 42)      | 101010   |
+| %d   | 十进制整数               | fmt.Printf("%d", 42)      | 42       |
+| %x   | 十六进制（小写）         | fmt.Printf("%x", 42)      | 2a       |
+
+格式化输出函数：
+
+`fmt.Printf`：格式化并打印到标准输出（控制台）。
+
+`fmt.Sprintf`：格式化并返回格式化后的字符串。
+
+`fmt.Fprintf`：格式化并写入指定的 io.Writer（如文件或网络连接）。
+
+
+
+## 三、常见操作
+
+### 1. 字符串操作
+
+字符串是 string 类型的变量，底层是一个只读的字节切片（[]byte），但**不可直接修改**。
+
+1. **获取长度**
+
+`len(str)`：返回字符串的**字节长度**（不是字符数）。
+
+```go
+func main() {
+	str1 := "hello"
+	str2 := "hello我"
+	fmt.Println(len(str1), len(str2)) // 输出 5 8
 }
 ```
+
+2. **访问字符**
+
+**byte**（uint8 的别名）：表示字符串中的单个字节，通常用于 ASCII 字符。
+
+**rune**（int32 的别名）：表示完整的 Unicode 字符。
+
+字节访问：通过索引（如 str[0]）访问单个字节，返回 byte 类型。
+
+字符（rune）访问：将字符串转为 []rune 切片，访问 Unicode 字符。
+
+```go
+str := "Hello, 世界"
+fmt.Println(str[0])           // 输出：72（'H' 的 ASCII 值）
+runes := []rune(str)
+fmt.Println(runes[7])        // 输出：19990（'界' 的 Unicode 码点）
+```
+
+3. **字符串拼接**
+
+使用 + 运算符拼接字符串，但性能较低（因创建新字符串）。
+
+更高效的方式是使用 `strings.Builder` 或 `bytes.Buffer`。
+
+```go
+str1 := "Hello"
+str2 := "World"
+result := str1 + ", " + str2 // 低效拼接
+fmt.Println(result)          // 输出：Hello, World
+
+var builder strings.Builder
+builder.WriteString("Hello")
+builder.WriteString(", ")
+builder.WriteString("World")
+result := builder.String()
+fmt.Println(result) // Hello, World
+```
+
+4. **`strings` 包常用函数**
+
+`strings.Contains(s, substr string) bool`：检查字符串 s 是否包含子串 substr。
+
+`strings.ContainsRune(s string, r rune) bool`：检查是否包含特定 Unicode 字符。
+
+`strings.Index(s, substr string) int`：返回子串首次出现的索引，未找到返回 -1。
+
+`strings.LastIndex(s, substr string) int`：返回子串最后出现的索引。
+
+`strings.Split(s, sep string) []string`：按分隔符分割字符串。
+
+`strings.Join(a []string, sep string) string`：将字符串切片用分隔符连接。
+
+```go
+str := "Hello, World"
+fmt.Println(strings.Contains(str, "World")) // true
+fmt.Println(strings.Index(str, "o"))        // 4
+fmt.Println(strings.LastIndex(str, "o"))    // 8
+```
+
+5. **修改字符串**
+
+- 将字符串转为 []byte 切片，修改后再转回字符串。
+- 将字符串转为 []rune 切片，修改后再转回字符串。
+
+```go
+str := "Hello"
+bytes := []byte(str)
+bytes[0] = 'h'
+fmt.Println(string(bytes)) // 输出：hello
+
+str := "Hello, 你好"
+tmp := []rune(str)
+tmp[7] = '我'
+fmt.Println(string(tmp)) // 输出：Hello, 我好
+```
+
+6. **字符串类型转换**
+
+字符串到其他类型的转换：
+
+1. `ParseInt(s string, base int, bitSize int) (int64, error)` ：将字符串解析为指定进制的有符号整数。
+
+2. `ParseUint(s string, base int, bitSize int) (uint64, error)`
+3. `ParseFloat(s string, bitSize int) (float64, error)`
+4. `ParseBool(s string) (bool, error)`
+
+ 其他类型到字符串的转换
+
+1. `FormatInt(i int64, base int) string`：将有符号整数格式化为指定进制的字符串。
+
+2. `FormatUint(i uint64, base int) string`
+
+3. `FormatFloat(f float64, fmt byte, prec int, bitSize int) string`
+
+4. `FormatBool(b bool) string`
+
+
+
+### 2. 数组
+
+固定长度、相同类型的元素序列。长度是数组类型的一部分，定义后**数组的大小不可变**。
+
+1. **定义数组**
+
+```go
+var arr [5]int  // 声明一个长度为5的整型数组
+var arr = [3]int{1, 2, 3}  // 声明一个长度为3的数组，并初始化
+var arr = [...]int{1, 2, 3, 4}  // 声明一个数组，长度由元素数量自动推导
+arr := [3]int{1, 2, 3}  // 使用简短声明符声明并初始化数组
+
+var arr = [3][2]string{
+    {"北京", "上海"},
+    {"广州", "深圳"},
+    {"成都", "重庆"},
+}
+fmt.Printf("arr: %v\n", arr)
+```
+
+
+
+### 3. 切片
+
+切片是一个动态数组，可以增长和缩小。与数组不同，**切片的长度是动态的**，可以在运行时改变。切片是动态的，当添加元素超过当前容量时，Go 会自动扩容。（通过 append 添加时，容量不足会扩容，扩容策略最开始是上次容量的2倍）
+
+1. **定义切片**
+
+切片的定义类似数组，只不过不写大小了
+
+```go
+// 定义一个切片，没有初始化，是nil
+var s []int
+
+// 直接创建并初始化
+s := []int{1, 2, 3, 4}
+
+// 通过数组初始化
+s := []int{1, 2, 3, 4}
+
+// 通过make，创建长度为 5，容量为 10 的切片
+s := make([]int, 5, 10)  
+```
+
+2. **添加一个或多个元素**
+
+```go
+s := []int{1, 2, 3}
+s = append(s, 4, 5, 6)  // 同时添加多个元素
+fmt.Println(s)  // 输出 [1 2 3 4 5 6]
+
+s1 := []int{1, 2}
+s2 := []int{3, 4, 5}
+s1 = append(s1, s2...)  // 用 ... 来解包 s2 中的元素
+fmt.Println(s1)  // 输出 [1 2 3 4 5]
+
+s1 := []int{1, 2}
+s2 := []int{3, 4, 5}
+s3 := []int{6, 7, 8}
+s1 = append(s1, append(s2, s3...)...)
+fmt.Printf("s1: %v\n", s1)
+```
+
+3. **取切片的子集**
+
+通过索引，你可以从切片中取出一个子切片。
+
+```go
+s := []int{1, 2, 3, 4, 5}
+sub := s[1:4]  // 从下标 1 到下标 3（不包含 4）
+fmt.Println(sub)  // 输出 [2 3 4]
+
+sub := s[:3]  // 取前 3 个元素
+fmt.Println(sub)  // 输出 [1 2 3]
+
+sub := s[2:]  // 从下标 2 开始，到切片末尾
+fmt.Println(sub)  // 输出 [3 4 5]
+
+sub := s[:]	// 从下标0到末尾
+fmt.Println(sub)
+```
+
+4. **获取长度和容量**
+
+新的切片是通过对**数组或另一个切片**的切片操作（[start:end]）创建的。新的切片的容量取决于另一个切片的底层数组从起始索引到末尾的可用元素数量。
+
+```go
+a := []int{1, 2, 3, 4, 5}
+sl := a[1:2]
+fmt.Printf("sl: %v size：%v cap：%v\n", sl, len(sl), cap(sl))
+
+// 输出
+sl: [2] size：1 cap：4
+```
+
+5. **深拷贝**
+
+```go
+a := []int{1, 2, 3, 4, 5}
+b := make([]int, len(a))
+copy(b, a)	// dist, src return 拷贝的size
+a[0] = 10
+fmt.Println(b)
+```
+
+6. **排序**
+
+```go
+sort.Ints(s []int)	对整数切片按升序排序。
+sort.Float64s(s []float64)	对浮点数切片按升序排序。
+sort.Strings(s []string)	对字符串切片按字典序排序。
+sort.Sort(data Interface)	对实现 sort.Interface 的数据进行排序。
+sort.IntSlice(s []int)		将 []int 切片转换为实现 sort.Interface 接口的类型，从而可以利用 sort 包的排序功能
+sort.Float64Slice(s []float64)： 
+sort.StringSlice(s []string)：
+sort.Reverse() 将排序规则反转（如从升序变为降序）。
+
+sort.Sort(sort.Reverse(sort.IntSlice(s)))	// 降序
+```
+
+```go
+sort.Search(n int, f func(int) bool) int：在已排序的数据中执行二分查找，返回满足 f(i) == true 的最小索引 i。
+
+func main() {
+    nums := []int{1, 2, 3, 4, 5}
+    x := 3
+    index := sort.Search(len(nums), func(i int) bool { return nums[i] >= x })
+    if index < len(nums) && nums[index] == x {
+        fmt.Printf("Found %d at index %d\n", x, index) // 输出: Found 3 at index 2
+    } else {
+        fmt.Printf("%d not found\n", x)
+    }
+}
+```
+
+
+
+### 4. 字典
+
+map是一种内建的数据结构，用于存储键值对。它类似于其他语言中的哈希表、字典或散列表。`map` 可以通过键高效地查找、删除和更新值。
+
+1. **定义map**
+
+```go
+var m map[string]int
+
+m := make(map[string]int)
+```
+
+2. **添加或修改值**
+
+```go
+m["age"] = 30
+m["height"] = 175
+fmt.Println(m)  // 输出 map[age:30 height:175]
+```
+
+3. **查询键值对**
+
+```go
+value := m["age"]
+fmt.Println(value)  // 输出 30
+
+---
+value, ok := m["weight"]
+if ok {
+    fmt.Println(value)
+} else {
+    fmt.Println("weight 不存在")
+}
+```
+
+4. **删除键值对**
+
+```go
+delete(m, "age")
+fmt.Println(m)  // 输出 map[height:175]
+```
+
+5. **遍历**
+
+```go
+m := map[string]int{"age": 30, "height": 175, "weight": 70}
+for key, value := range m {
+    fmt.Println(key, value)
+}
+```
+
+
+
+## 四、控制结构
+
+特殊之处
+
+1. 不允许省略花括号
+2. 花括号 `{` 必须跟 `if` 同一行
+
+```go
+if x > 0 
+    fmt.Println("Positive")  // 这是错误的，缺少花括号
+```
+
+```go
+if x > 0 {
+    fmt.Println("Positive")	// 可以
+}
+```
+
+```go
+if x > 0 { fmt.Println("Positive") }	// 可以
+```
+
+
+
+### 1. if
+
+1. 基本语法
+
+`condition` 必须是一个布尔值表达式（`true` 或 `false`）
+
+```go
+x := 10
+if x > 5 {
+    fmt.Println("x 大于 5")
+} else {
+    fmt.Println("x 小于或等于 5")
+}
+```
+
+2. 特殊之处
+
+在 `if` 语句的条件表达式前，可以添加初始化语句来声明和初始化变量。这些变量的作用范围仅限于 `if` 语句内部。
+
+```go
+if x := 10; x > 5 {
+    fmt.Println("x 大于 5")
+} else {
+    fmt.Println("x 小于或等于 5")
+}
+```
+
+
+
+### 2. switch
+
+1. 基本语法
+
+```go
+switch expression {
+case value1:
+    // expression == value1 时执行
+case value2:
+    // expression == value2 时执行
+default:
+    // expression 没有匹配的值时执行
+}
+```
+
+- `expression` 是你要判断的表达式，可以是常量、变量、函数调用等。
+
+- `case` 后面跟着要匹配的值或表达式。
+
+- `default` 是可选的，当没有任何 `case` 匹配时执行。
+
+2. 特殊之处
+
+**不需要 `break`**： `switch` 语句中，每个 `case` 默认是结束的，不需要显式地写 `break`。
+
+**多重匹配**： `case` 后面可以列出多个值，匹配任意一个值都会执行对应的代码块。
+
+```go
+x := 2
+switch x {
+case 1, 2, 3:
+    fmt.Println("x 是 1、2 或 3")
+default:
+    fmt.Println("x 不是 1、2 或 3")
+}
+// 输出
+x 是 1、2 或 3
+```
+
+
+
+
+
+### 3. 循环
+
+#### 3.1 for
+
+1. 基本语法
+
+```go
+for init; condition; post {
+    // 循环体
+}
+```
+
+3. init，condition，可省略 post
+
+```go
+for i := 0; i < 10; {
+    fmt.Println(i)
+    if i == 5 {
+        break // 手动退出
+    }
+    i++
+}
+```
+
+4. condition，可省略 init 和 post
+
+```go
+x := 0
+for x < 5 {
+    fmt.Println(x)
+    x++
+}
+```
+
+5. 都可省略
+
+```go
+for {
+    fmt.Println("这是一个无限循环")
+    break // 可以使用 break 来退出循环
+}
+```
+
+
+
+#### 3.2 for range
+
+用于遍历可迭代对象（如字符串、切片、数组、映射、通道）。
+
+```go
+for index, value := range iterable {
+    // 循环体
+}
+```
+
+使用 `for range` 或将字符串转为 `[]rune` 。可以用来处理包含 Unicode 字符的字符串（如中文、表情符号）。
+
+```go
+str := "Hello, 世界"
+for i, r := range str {
+    fmt.Printf("Index: %d, Char: %c\n", i, r)
+}
+// 输出：
+// Index: 0, Char: H
+// Index: 1, Char: e
+// ...
+// Index: 7, Char: 世
+// Index: 10, Char: 界
+```
+
+
+
+#### 3.3 label
+
+1. 标签必须紧挨在 `for`、`switch/select` 之前，或者在不违背前面规则的前提下，在函数中任意地方
+
+2. break 配合 **标签** 可以退出指定的外层循环，而不是仅退出最内层结构。
+
+```go
+LabelName:
+for ... {
+    for ... {
+        break LabelName // 退出 LabelName 标记的循环
+    }
+}
+```
+
+```go
+// 可以理解成最开层的循环叫做 OuterLoop, break OuterLoop; 会跳出最外层循环
+OuterLoop:
+	for i := range 3 {
+		fmt.Printf("Outer Loop: %v\n", i)
+		for j := range 3 {
+			if i == 1 && j == 1 {
+				break OuterLoop // 退出外层循环
+			}
+			fmt.Printf("i=%d, j=%d\n", i, j)
+		}
+	}
+// 输出
+Outer Loop: 0
+i=0, j=0
+i=0, j=1
+i=0, j=2
+Outer Loop: 1
+i=1, j=0
+```
+
+3. continue 配合 **标签** 可以进入指定的外层循环的下次迭代，而不是再进入最内层循环的下次迭代。
+
+```go
+OuterLoop:
+	for i := range 3 {
+		fmt.Printf("Outer Loop: %v\n", i)
+		for j := range 3 {
+			if i == 1 && j == 1 {
+				continue OuterLoop // 退出外层循环
+			}
+			fmt.Printf("i=%d, j=%d\n", i, j)
+		}
+	}
+// 输出
+Outer Loop: 0
+i=0, j=0
+i=0, j=1
+i=0, j=2
+Outer Loop: 1
+i=1, j=0
+Outer Loop: 2
+i=2, j=0
+i=2, j=1
+i=2, j=2
+```
+
+4. goto 会直接跳转到 `OuterLoop` 标签所在的位置。
+
+```go
+OuterLoop:
+	for i := range 3 {
+		fmt.Printf("Outer Loop: %v\n", i)
+		for j := range 3 {
+			if i == 1 && j == 1 {
+				goto OuterLoop // 退出外层循环
+			}
+			fmt.Printf("i=%d, j=%d\n", i, j)
+		}
+	}
+// 输出
+会陷入死循环，因为 goto 到标签后，它并不会像continue那样让 i + 1
+```
+
+
+
+
+
+### 4. 函数
+
+使用 `func` 关键字定义函数。函数有一个名称、参数列表、返回类型和函数体。
+
+1. 基本用法
+
+```go
+func functionName(parameter1 type1, parameter2 type2) returnType {
+    // 函数体
+    return result
+}
+```
+
+```go
+func swap(a int, b int) (int, int) {
+    return b, a
+}
+
+// 前面的参数类型和最后相同的话，可以简写参数类型
+func swap(a, b int) (int, int) {
+    return b, a
+}
+```
+
+2. 可以返回多个值
+
+```go
+func calculate(a, b int) (int, int) {
+	sum = a + b
+	product = a * b
+	return sum, product
+}
+
+func main() {
+	s, p := calculate(3, 5)
+	fmt.Println(s, p) // 输出：8 15
+}
+
+------
+// 简写，隐式返回
+func calculate(a, b int) (sum int, product int) {
+	sum = a + b
+	product = a * b
+	return
+}
+
+func main() {
+	s, p := calculate(3, 5)
+	fmt.Println(s, p) // 输出：8 15
+}
+```
+
+3. 可变参数
+
+```go
+func sum(numbers ...int) int {
+    total := 0
+    for _, number := range numbers {
+        total += number
+    }
+    return total
+}
+
+---
+result := sum(1, 2, 3, 4, 5)
+fmt.Println(result)	// 15
+```
+
+4. 匿名函数
+
+匿名函数是没有名称的函数，可以直接定义在代码中，通常赋值给变量或作为参数传递。
+
+```go
+func (参数列表) 返回值类型 {
+    // 函数体
+}
+------
+func main() {
+    // 直接定义并调用
+    func(x, y int) {
+        fmt.Println(x + y)
+    }(3, 5) // 输出: 8
+}
+------
+func main() {
+    // 赋值给变量
+    add := func(x, y int) int {
+        return x + y
+    }
+    result := add(3, 5)
+    fmt.Println(result) // 输出: 8
+}
+```
+
+闭包：闭包是一个函数（通常是匿名函数）及其捕获的外部作用域变量的组合。闭包能够“记住”定义时环境的变量，并在函数执行时访问或修改这些变量，即使外部作用域已经结束。
+
+变量捕获：
+
+- 匿名函数可以访问其定义时所在作用域的变量（包括外部函数的局部变量）。
+- 捕获是按引用进行的，意味着闭包操作的是外部变量的内存地址，而不是值的副本。
+
+捕获的变量不会随着外部函数的结束而销毁，而是与闭包的生命周期绑定，直到闭包不再被引用。
+
+```go
+func counter() func() int {
+	count := 0          // 外部变量
+	return func() int { // 匿名函数形成闭包
+		count++ // 捕获并修改 count
+		return count
+	}
+}
+
+func main() {
+	c1 := counter()   // 创建第一个闭包
+	c2 := counter()   // 创建第二个闭包
+	fmt.Println(c1()) // 输出: 1
+	fmt.Println(c1()) // 输出: 2
+	fmt.Println(c2()) // 输出: 1
+}
+```
+
+
+
+
+
+
+
+## 五、Goroutines 和 Channel
+
+Go 的并发模型是其最强大且独特的特点之一。Go 提供了简洁而高效的并发编程方式，能够让你轻松地编写并发程序。Go 的并发模型主要是通过 **goroutines** 和 **channels** 来实现的。下面我会详细讲解这两者，以及它们如何协同工作来实现并发。
+
+### 1. **Goroutines：轻量级线程**
+
+在 Go 中，**goroutine** 是一种轻量级的线程。它由 Go 运行时（runtime）管理，能够并发执行任务。与操作系统线程相比，goroutine 的开销非常小，可以在同一程序中并发执行成千上万的 goroutine。
+
+创建和管理 goroutine 的方式非常简单，只需要使用 `go` 关键字来启动一个新的 goroutine。任何函数都可以作为 goroutine 被调用。在一个 Go 程序中，所有的函数都是可以并发执行的。你只需要使用 `go` 关键字来启动它。
+
+```go
+func printMessage(message string) {
+    fmt.Println(message)
+}
+
+func main() {
+    go printMessage("Hello from goroutine!")  // 启动一个 goroutine
+    printMessage("Hello from main thread!")   // 主线程输出
+}
+```
+
+Goroutine 的特点
+
+- **轻量级**：Goroutine 的创建和销毁比操作系统线程轻得多。Go 会自动管理 goroutine 的调度和执行。
+- **内存共享**：Goroutine 可以共享内存，但需要同步机制来防止竞争条件。
+- **自动调度**：Go 的运行时调度器会自动调度多个 goroutine 的执行。程序员不需要管理线程池或调度。
+
+
+
+### 2. **Channels：沟通的桥梁**
+
+`channel` 是 Go 中的一个核心概念，它提供了 goroutine 之间的通信机制。goroutines 通过 channels 交换数据，从而实现同步和数据传递。Go 的 channel 是类型安全的（即你只能通过特定类型的 channel 传递数据），并且支持阻塞、同步等特性。
+
+1. 创建一个 Channel
+
+```
+go
+
+
+复制编辑
+ch := make(chan int)  // 创建一个传递整数的 channel
+```
+
+这里 `ch` 是一个 channel，它用来传递 `int` 类型的数据。你可以通过 `make(chan Type)` 来创建一个指定类型的 channel。
+
+2. 向 Channel 发送数据
+
+使用 `<-` 运算符可以将数据发送到 channel 中：
+
+```go
+ch <- 42  // 将数据 42 发送到 channel ch
+```
+
+3. 从 Channel 接收数据
+
+同样，使用 `<-` 运算符来接收来自 channel 的数据：
+
+```go
+value := <-ch  // 从 channel ch 中接收数据
+fmt.Println(value)  // 输出 42
+```
+
+4. Channels 的阻塞特性
+
+- 如果一个 goroutine 尝试从 channel 中读取数据时，channel 中没有数据，它会阻塞，直到数据可用。
+- 如果一个 goroutine 向 channel 发送数据时，另一个 goroutine 没有准备好接收，它会阻塞，直到接收方准备好。
+
+这种特性使得 goroutines 之间的通信既可以同步也可以实现高效的数据交换。
+
+5. Buffered Channels（缓冲区 Channel）
+
+Go 还支持 **缓冲区 channel**，这使得可以向 channel 发送数据而不需要立即有接收方。通过为 channel 指定缓冲区大小，你可以在缓冲区满之前将数据发送到 channel 中，接收方再从缓冲区取数据。
+
+
+
 
