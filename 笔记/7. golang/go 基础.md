@@ -136,75 +136,32 @@ complex128：由两个float64组成，Go中默认复数类型。
 
 ### 2. 复合数据类型
 
-**数组**
+**数组**：固定长度、相同类型的元素序列。长度是数组类型的一部分，定义后不可变。
 
-固定长度、相同类型的元素序列。
+```go
+var arr [5]int  // 声明一个长度为5的整型数组
+var arr = [3]int{1, 2, 3}  // 声明一个长度为3的数组，并初始化
+var arr = [...]int{1, 2, 3, 4}  // 声明一个数组，长度由元素数量自动推导
+arr := [3]int{1, 2, 3}  // 使用简短声明符声明并初始化数组
+```
 
-长度是数组类型的一部分，定义后不可变。
+**切片**：动态长度、可变数组，基于数组的引用类型。包含指针、长度（len）和容量（cap）。
 
-语法：[n]T，n是长度，T是元素类型。
+**映射**：键值对集合，类似Python的字典。
 
-**切片**
+**结构体**：自定义类型，聚合多个字段。
 
-动态长度、可变数组，基于数组的引用类型。
+**指针**：存储变量的内存地址。
 
-包含指针、长度（len）和容量（cap）。
+**接口**：定义方法集合，类型通过实现方法隐式满足接口。
 
-语法：[]T。
+**函数类型**：函数可以作为类型，用于回调或高阶函数。
 
-**映射**
-
-键值对集合，类似Python的字典。
-
-语法：map[K]V，K是键类型，V是值类型。
-
-键必须支持==比较操作。
-
-**结构体**
-
-自定义类型，聚合多个字段。
-
-语法：struct { field1 Type1; field2 Type2; ... }。
-
-**指针**
-
-存储变量的内存地址。
-
-语法：*T表示指向类型T的指针，&x获取变量x的地址。
-
-Go没有指针运算（如C的ptr++）。
-
-**接口**
-
-定义方法集合，类型通过实现方法隐式满足接口。
-
-空接口interface{}可表示任意类型。
-
-**函数类型**
-
-函数可以作为类型，用于回调或高阶函数。
-
-语法：func(param1 Type1, param2 Type2) ReturnType。
+**Channel**：用于goroutine间通信的类型。
 
 
 
-### 3. 其他类型
-
-**Channel**
-
-用于goroutine间通信的类型。
-
-语法：chan T（无缓冲通道），make(chan T, n)（有缓冲通道）。
-
-**自定义类型**
-
-使用type关键字定义新类型，基于现有类型。
-
-常用于增强代码可读性或添加方法。
-
-
-
-### 4. 类型转换和默认值
+### 3. 类型转换和默认值
 
 Go是强类型语言，类型之间需要显式转换，不能隐式转换。
 
@@ -217,12 +174,14 @@ Go中未初始化的变量会自动赋值为类型的零值：
 - int, float32, float64：0
 - bool：false
 - string：""（空字符串）
-- 指针、切片、映射、通道、接口：nil
+- 指针、切片、映射、通道、接口：`nil`
 - 结构体：字段均为零值
 
+**`nil`** 是 Go 语言中的关键字，用来表示空值。`nil` 代表这些类型的“无效”或“未初始化”状态。
 
 
-### 5. 声明方式
+
+### 4. 声明方式
 
 1. 通过 `var`，语法：`var 变量名 类型`
 
@@ -291,9 +250,7 @@ func main() {
 
 
 
-
-
-### 6. 变量相关的补充
+### 5. 变量相关的补充
 
 1. **常量**声明
 
@@ -325,6 +282,382 @@ type MyInt int
 func main() {
     var x MyInt = 42
     fmt.Println(x) // 输出: 42
+}
+```
+
+
+
+## 四、控制结构
+
+不允许省略花括号：
+
+```go
+if x > 0 
+    fmt.Println("Positive")  // 这是错误的，缺少花括号
+```
+
+```go
+if x > 0 {
+    fmt.Println("Positive")	// 可以
+}
+```
+
+```go
+if x > 0 { fmt.Println("Positive") }	// 可以
+```
+
+
+
+### 1. if
+
+1. 基本语法
+
+`condition` 必须是一个布尔值表达式（`true` 或 `false`）
+
+```go
+x := 10
+if x > 5 {
+    fmt.Println("x 大于 5")
+} else {
+    fmt.Println("x 小于或等于 5")
+}
+```
+
+2. 特殊之处
+
+在 `if` 语句的条件表达式前，可以添加初始化语句来声明和初始化变量。这些变量的作用范围仅限于 `if` 语句内部。
+
+```go
+if x := 10; x > 5 {
+    fmt.Println("x 大于 5")
+} else {
+    fmt.Println("x 小于或等于 5")
+}
+```
+
+
+
+### 2. switch
+
+1. 基本语法
+
+```go
+switch expression {
+case value1:
+    // expression == value1 时执行
+case value2:
+    // expression == value2 时执行
+default:
+    // expression 没有匹配的值时执行
+}
+```
+
+- `expression` 是你要判断的表达式，可以是常量、变量、函数调用等。
+
+- `case` 后面跟着要匹配的值或表达式。
+
+- `default` 是可选的，当没有任何 `case` 匹配时执行。
+
+2. 特殊之处
+
+**不需要 `break`**： `switch` 语句中，每个 `case` 默认是结束的，不需要显式地写 `break`。
+
+**多重匹配**： `case` 后面可以列出多个值，匹配任意一个值都会执行对应的代码块。
+
+```go
+x := 2
+switch x {
+case 1, 2, 3:
+    fmt.Println("x 是 1、2 或 3")
+default:
+    fmt.Println("x 不是 1、2 或 3")
+}
+// 输出
+x 是 1、2 或 3
+```
+
+
+
+
+
+### 3. for
+
+1. 基本语法
+
+```go
+for init; condition; post {
+    // 循环体
+}
+```
+
+3. init，condition，可省略 post
+
+```go
+for i := 0; i < 10; {
+    fmt.Println(i)
+    if i == 5 {
+        break // 手动退出
+    }
+    i++
+}
+```
+
+4. condition，可省略 init 和 post
+
+```go
+x := 0
+for x < 5 {
+    fmt.Println(x)
+    x++
+}
+```
+
+5. 都可省略
+
+```go
+for {
+    fmt.Println("这是一个无限循环")
+    break // 可以使用 break 来退出循环
+}
+```
+
+
+
+### 4. 函数
+
+使用 `func` 关键字定义函数。函数有一个名称、参数列表、返回类型和函数体。
+
+1. 基本用法
+
+```go
+func functionName(parameter1 type1, parameter2 type2) returnType {
+    // 函数体
+    return result
+}
+```
+
+```go
+func swap(a, b int) (int, int) {
+    return b, a
+}
+```
+
+2. 具名返回值
+
+```go
+func calculate(a, b int) (sum int, product int) {
+    sum = a + b
+    product = a * b
+    return
+}
+
+---
+s, p := calculate(3, 5)
+fmt.Println(s, p) // 输出：8 15
+```
+
+3. 可变参数
+
+```go
+func sum(numbers ...int) int {
+    total := 0
+    for _, number := range numbers {
+        total += number
+    }
+    return total
+}
+
+---
+result := sum(1, 2, 3, 4, 5)
+fmt.Println(result)	// 15
+```
+
+
+
+### 5. 切片
+
+切片是一个动态数组，可以增长和缩小。与数组不同，切片的长度是动态的，可以在运行时改变。切片是动态的，当添加元素超过当前容量时，Go 会自动扩容。
+
+1. 定义切片
+
+```go
+// 定义一个切片
+var s []int
+
+// 直接创建并初始化
+s := []int{1, 2, 3, 4}
+
+// 通过数组初始化
+s := []int{1, 2, 3, 4}
+
+// 通过make，创建长度为 5，容量为 10 的切片
+s := make([]int, 5, 10)  
+```
+
+2. 添加一个或多个元素
+
+```go
+s := []int{1, 2, 3}
+s = append(s, 4, 5, 6)  // 同时添加多个元素
+fmt.Println(s)  // 输出 [1 2 3 4 5 6]
+
+s1 := []int{1, 2}
+s2 := []int{3, 4, 5}
+s1 = append(s1, s2...)  // 用 ... 来解包 s2 中的元素
+fmt.Println(s1)  // 输出 [1 2 3 4 5]
+```
+
+3. 取切片的子集
+
+通过索引，你可以从切片中取出一个子切片。
+
+```go
+s := []int{1, 2, 3, 4, 5}
+sub := s[1:4]  // 从下标 1 到下标 3（不包含 4）
+fmt.Println(sub)  // 输出 [2 3 4]
+
+sub := s[:3]  // 取前 3 个元素
+fmt.Println(sub)  // 输出 [1 2 3]
+
+sub := s[2:]  // 从下标 2 开始，到切片末尾
+fmt.Println(sub)  // 输出 [3 4 5]
+```
+
+4. 获取长度和容量
+
+```go
+s := []int{1, 2, 3}
+fmt.Println(len(s))  // 输出 3
+fmt.Println(cap(s))  // 输出 3
+```
+
+
+
+Go 的并发模型是其最强大且独特的特点之一。Go 提供了简洁而高效的并发编程方式，能够让你轻松地编写并发程序。Go 的并发模型主要是通过 **goroutines** 和 **channels** 来实现的。下面我会详细讲解这两者，以及它们如何协同工作来实现并发。
+
+#### 1. **Goroutines：轻量级线程**
+
+在 Go 中，**goroutine** 是一种轻量级的线程。它由 Go 运行时（runtime）管理，能够并发执行任务。与操作系统线程相比，goroutine 的开销非常小，可以在同一程序中并发执行成千上万的 goroutine。
+
+创建和管理 goroutine 的方式非常简单，只需要使用 `go` 关键字来启动一个新的 goroutine。任何函数都可以作为 goroutine 被调用。在一个 Go 程序中，所有的函数都是可以并发执行的。你只需要使用 `go` 关键字来启动它。
+
+```go
+func printMessage(message string) {
+    fmt.Println(message)
+}
+
+func main() {
+    go printMessage("Hello from goroutine!")  // 启动一个 goroutine
+    printMessage("Hello from main thread!")   // 主线程输出
+}
+```
+
+#### Goroutine 的特点
+
+- **轻量级**：Goroutine 的创建和销毁比操作系统线程轻得多。Go 会自动管理 goroutine 的调度和执行。
+- **内存共享**：Goroutine 可以共享内存，但需要同步机制来防止竞争条件。
+- **自动调度**：Go 的运行时调度器会自动调度多个 goroutine 的执行。程序员不需要管理线程池或调度。
+
+
+
+#### 2. **Channels：沟通的桥梁**
+
+`channel` 是 Go 中的一个核心概念，它提供了 goroutine 之间的通信机制。goroutines 通过 channels 交换数据，从而实现同步和数据传递。Go 的 channel 是类型安全的（即你只能通过特定类型的 channel 传递数据），并且支持阻塞、同步等特性。
+
+#### 创建一个 Channel
+
+```
+go
+
+
+复制编辑
+ch := make(chan int)  // 创建一个传递整数的 channel
+```
+
+这里 `ch` 是一个 channel，它用来传递 `int` 类型的数据。你可以通过 `make(chan Type)` 来创建一个指定类型的 channel。
+
+#### 向 Channel 发送数据
+
+使用 `<-` 运算符可以将数据发送到 channel 中：
+
+```go
+ch <- 42  // 将数据 42 发送到 channel ch
+```
+
+#### 从 Channel 接收数据
+
+同样，使用 `<-` 运算符来接收来自 channel 的数据：
+
+```go
+value := <-ch  // 从 channel ch 中接收数据
+fmt.Println(value)  // 输出 42
+```
+
+#### Channels 的阻塞特性
+
+- 如果一个 goroutine 尝试从 channel 中读取数据时，channel 中没有数据，它会阻塞，直到数据可用。
+- 如果一个 goroutine 向 channel 发送数据时，另一个 goroutine 没有准备好接收，它会阻塞，直到接收方准备好。
+
+这种特性使得 goroutines 之间的通信既可以同步也可以实现高效的数据交换。
+
+#### Buffered Channels（缓冲区 Channel）
+
+Go 还支持 **缓冲区 channel**，这使得可以向 channel 发送数据而不需要立即有接收方。通过为 channel 指定缓冲区大小，你可以在缓冲区满之前将数据发送到 channel 中，接收方再从缓冲区取数据。
+
+
+
+
+
+### 集合
+
+### 6. 字典
+
+map是一种内建的数据结构，用于存储键值对。它类似于其他语言中的哈希表、字典或散列表。`map` 可以通过键高效地查找、删除和更新值。
+
+1. 定义map
+
+```go
+var m map[string]int
+
+m := make(map[string]int)
+```
+
+2. 添加或修改值
+
+```go
+m["age"] = 30
+m["height"] = 175
+fmt.Println(m)  // 输出 map[age:30 height:175]
+```
+
+3. 查询键值对
+
+```go
+value := m["age"]
+fmt.Println(value)  // 输出 30
+
+---
+value, ok := m["weight"]
+if ok {
+    fmt.Println(value)
+} else {
+    fmt.Println("weight 不存在")
+}
+```
+
+4. 删除键值对
+
+```go
+delete(m, "age")
+fmt.Println(m)  // 输出 map[height:175]
+```
+
+5. 遍历
+
+```go
+m := map[string]int{"age": 30, "height": 175, "weight": 70}
+for key, value := range m {
+    fmt.Println(key, value)
 }
 ```
 
