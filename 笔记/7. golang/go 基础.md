@@ -87,9 +87,11 @@ Go语言的设计目标是解决现代软件开发中的常见问题，尤其是
 
 golang的数据类型分为 **值类型** 和 **引用类型**
 
-值类型：所有基本类型数据、数组
+- 值类型：所有基本类型数据、**数组**、**结构体**
 
-其他的为引用类型
+- 其他的为引用类型
+
+
 
 ### 1. 基本数据类型
 
@@ -175,7 +177,7 @@ func main() {
 
 2. **短变量声明**
 
-短变量声明是Go中最常用的声明方式，仅限于函数内部，通过 := 自动推导变量类型。
+短变量声明是Go中最常用的声明方式，仅限于函数内部，通过 `:=` 自动推导变量类型。
 
 限制：
 
@@ -268,36 +270,17 @@ func main() {
 0 100 2 3
 ```
 
-6. **命名规则**
+6. **默认初始值**
 
-大写字母开头（如 UserName）：变量是公开的（exported），可以在包外访问。
+- int, float32, float64：0
 
-小写字母开头（如 userName）：变量是私有的（unexported），仅在当前包内可见。
+- bool：false
 
-```go
-package main
+- string：""（空字符串）
 
-var PublicVar = "I'm public"  // 可被其他包访问
-var privateVar = "I'm private" // 仅在本包内可访问
-```
+- 指针、切片、映射、通道、接口：nil
 
-7. **类型转换**
-
-Go是强类型语言，类型之间需要显式转换，不能隐式转换。`T(v)`，将值v转换为类型T。
-
-
-
-8. **默认初始值**
-
-   - int, float32, float64：0
-
-   - bool：false
-
-   - string：""（空字符串）
-
-   - 指针、切片、映射、通道、接口：nil
-
-   - 结构体：字段均为零值
+- 结构体：字段均为零值
 
 
 
@@ -322,6 +305,12 @@ Go是强类型语言，类型之间需要显式转换，不能隐式转换。`T(
 `fmt.Sprintf`：格式化并返回格式化后的字符串。
 
 `fmt.Fprintf`：格式化并写入指定的 io.Writer（如文件或网络连接）。
+
+
+
+### 5. golang 的包
+
+
 
 
 
@@ -1039,43 +1028,7 @@ func main() {
 }
 ```
 
-3. **结构体**
-
-```go
-type Person struct {
-    Name string
-    Age  int
-}
-
-func main() {
-    p := Person{Name: "Alice", Age: 30}
-    fmt.Println(p.Name) // 输出: Alice
-}
-```
-
-4. **接口**
-
-```go
-// 接口
-type Speaker interface {
-    Speak() string
-}
-
-type Person struct {
-    Name string
-}
-
-func (p Person) Speak() string {
-    return "Hello, my name is " + p.Name
-}
-
-func main() {
-    var s Speaker = Person{Name: "Alice"}
-    fmt.Println(s.Speak()) // 输出: Hello, my name is Alice
-}
-```
-
-5. **函数**
+3. **函数**
 
 ```go
 type Operation func(int, int) int
@@ -1091,7 +1044,7 @@ func main() {
 }
 ```
 
-6. **类型嵌套**
+4. **类型嵌套**
 
 Go 通过类型嵌入实现类似继承的功能。嵌入允许将一个类型的字段或方法直接“嵌入”到另一个类型中。嵌入的类型的方法和字段可以直接访问
 
@@ -1117,7 +1070,181 @@ func main() {
 
 
 
-### 2. defer
+### 2. type **`结构体和接口`**
+
+在 Go 语言中，**字段**、**函数**或**方法**的可见性由其名称的首字母大小写决定
+
+**大写开头**（如 Name）：表示字段或方法是导出的（exported），即包外的代码可以访问（类似 public）。
+
+**小写开头**（如 name）：表示字段或方法是未导出的（unexported），即只能在定义该字段的包内访问（类似 private）。
+
+1. **定义结构体**
+
+```go
+type Person struct {
+    Name string
+    Age  int
+    Email string
+}
+```
+
+2. **实例化结构体**
+
+实例化结构体，有两类方式，分别可以将结构体变量初始化为 **值类型** 和 **指针类型** 变量
+
+```go
+// 1. 直接声明
+person := Person{
+    Name:  "Alice",
+    Age:   30,
+    Email: "alice@example.com",
+}
+
+// 2. 零值初始化
+var person Person
+// person.Name == "", person.Age == 0, person.Email == ""
+
+上面是值类型的
+----------
+下面是指针类型的
+
+// 3. 使用 new 关键字
+person := new(Person)
+// 等价于
+// person := &Person{}
+
+// 4. 使用指针直接创建
+person := &Person{
+    Name:  "Bob",
+    Age:   25,
+    Email: "bob@example.com",
+}
+```
+
+3. **访问修改字段**
+
+```go
+通过点号（.）访问或修改结构体的字段，无论是指针类型还是值类型：
+person := Person{Name: "Alice", Age: 30}
+fmt.Println(person.Name) // 输出: Alice
+person.Age = 31         // 修改 Age
+fmt.Println(person.Age)  // 输出: 31
+
+对于指针类型的结构体，Go 提供了语法糖，允许直接使用点号访问字段，无需显式解引用：
+person := &Person{Name: "Bob", Age: 25}
+fmt.Println(person.Name) // 输出: Bob
+person.Age = 26         // 自动解引用，等价于 (*person).Age = 26
+```
+
+4. **定义方法**
+
+除了可以对结构体定义方法，可以给 **自定义类型** 定义方法
+
+```go
+package main
+
+import "fmt"
+
+type Person struct {
+    Name string
+    Age  int
+}
+
+func (p Person) SayHello() string {
+    return "Hello, my name is " + p.Name
+}
+
+func (p *Person) SetAge(age int) {
+    p.Age = age
+}
+
+func main() {
+    person := Person{Name: "Alice", Age: 30}
+    fmt.Println(person.SayHello()) // 输出: Hello, my name is Alice
+    person.SetAge(31)
+    fmt.Println(person.Age)        // 输出: 31
+}
+```
+
+5. **匿名字段**
+
+Go 支持结构体嵌套，通过匿名字段（embedded struct）实现类似继承的功能。匿名字段是指在结构体中声明另一个结构体类型，但不指定字段名。
+
+```go
+type Address struct {
+    City  string
+    State string
+}
+
+type Person struct {
+    Name    string
+    Age     int
+    Address // 匿名字段
+}
+
+------
+访问匿名字段的方式有两种：
+person := Person{
+    Name:    "Alice",
+    Age:     30,
+    Address: Address{City: "New York", State: "NY"},
+}
+fmt.Println(person.City)  // 输出: New York
+
+fmt.Println(person.Address.City) // 输出: New York
+```
+
+6.  **结构体标签**
+
+结构体字段可以附加标签（tag），通常用于序列化（如 JSON、XML）或数据库映射。标签是一个字符串，定义在字段类型的后面，使用反引号（`）。
+
+```go
+package main
+
+import (
+    "encoding/json"
+    "fmt"
+)
+
+type Person struct {
+    Name string `json:"name"`	// 定义转换成json后的字段名
+    Age  int    `json:"age"`
+}
+
+func main() {
+    person := Person{Name: "Alice", Age: 30}
+    data, _ := json.Marshal(person)
+    fmt.Println(string(data)) // 输出: {"name":"Alice","age":30}
+}
+```
+
+
+
+**接口**
+
+```go
+// 接口
+type Speaker interface {
+    Speak() string
+}
+
+type Person struct {
+    Name string
+}
+
+func (p Person) Speak() string {
+    return "Hello, my name is " + p.Name
+}
+
+func main() {
+    var s Speaker = Person{Name: "Alice"}
+    fmt.Println(s.Speak()) // 输出: Hello, my name is Alice
+}
+```
+
+
+
+### 3. defer
 
 defer 是一个关键字，用于延迟执行一个函数调用或方法调用，直到包含它的函数返回（无论是正常返回还是发生 panic）。defer 常用于资源清理（如关闭文件、释放锁）或确保某些操作在函数退出时执行。
 
@@ -1139,7 +1266,7 @@ Deferred call
 
 
 
-### 3. panic
+### 4. panic
 
 panic 是一个内置函数，用于触发程序的运行时异常，中断正常执行流程。panic 通常表示程序遇到无法继续运行的严重错误（如数组越界、空指针访问）。
 
@@ -1179,7 +1306,7 @@ panic: Critical error
 
 
 
-### 4. recover
+### 5. recover
 
 recover 是一个内置函数，用于捕获和处理 panic，防止程序崩溃。recover 必须在 defer 函数中调用，因为只有延迟函数才能在 panic 传播时捕获异常。
 
@@ -1215,7 +1342,7 @@ http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 
 
 
-### 5. time 包
+### 6. time 包
 
 ```go
 func main() {
