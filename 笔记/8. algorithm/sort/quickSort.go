@@ -1,4 +1,4 @@
-package main
+package sort
 
 func quickSort(arr []int, l, r int) {
 	// 一开始就相同时，没必要进行下面的操作

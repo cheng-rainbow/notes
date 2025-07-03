@@ -1,4 +1,4 @@
-package al
+package search
 
 func binarySearch1(arr []int, l, r, t int) int {
 	i, j := l, r

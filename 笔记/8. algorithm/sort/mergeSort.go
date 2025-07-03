@@ -1,6 +1,6 @@
-package al
+package sort
 
-func mergeSort(arr []int, l, r int) {
+func MergeSort(arr []int, l, r int) {
 	if l >= r {
 		return
 	}
@@ -9,8 +9,8 @@ func mergeSort(arr []int, l, r int) {
 	i, j := l, mid+1
 	tmp := make([]int, r-l+1)
 
-	mergeSort(arr, l, mid)
-	mergeSort(arr, mid+1, r)
+	MergeSort(arr, l, mid)
+	MergeSort(arr, mid+1, r)
 
 	idx := 0
 	for i <= mid && j <= r {
