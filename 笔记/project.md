@@ -521,7 +521,13 @@ public final class AttrNationalTreasureLottery {
 
 ### 1. 配置
 
-1. Res 配置
+1. 武将的配置
+
+武将信息存储在属性系统中，原始excel文件是 `W_武将系统.xlsx`
+
+
+
+1. 委任的Res 配置
 
 建筑委任：GeneralAppointData
 
@@ -537,7 +543,7 @@ public final class AttrNationalTreasureLottery {
 
 2. cs 协议 配置
 
-```prot
+```protobuf
 //新委任协议
 message GeneralAppointSingle {
     optional int32               index			          = 1; //
@@ -558,9 +564,41 @@ message GeneralAppoint_C2S_Msg {
 
 
 
-3. handle
+### 2. Handler
 
-武将的委任，取消委任，一键委任的 `GeneralAppoint_C2S_Msg` 消息请求，都会由 `GeneralAppointMsgHandler` 处理
+基础委任、基础委任中的取消委任、进阶委任、一键委任 主要是`GeneralAppoint_C2S_Msg` 消息请求，由 `GeneralAppointMsgHandler` 处理
 
-其中将一个武将委派到某个建筑的主要逻辑是在 `grantManyAppoint(ISFSObject appointData, int oneKey)` 中的，一键委任的逻辑是在`grantAppointOneButton()` 中的
+进阶委任中的取消委任 主要是通过 `GeneralAppoint.REQUEST_ID` ，由 `GeneralAppoint` 处理
+
+1. `GeneralAppointMsgHandler` 
+
+首先获取消息中的请求参数，将武将id存在set中，遍历 set 集合，根据genid获取这个武将的详细信息，查看他的详细信息中的formid是否存在，存在则说明该武将是双属性武将。其中将一个武将委派到某个建筑的主要逻辑是在 `grantManyAppoint(ISFSObject appointData, int oneKey)` 中的，一键委任的逻辑是在`grantAppointOneButton()` 中的。
+
+- `grantManyAppoint`  处理委任请求
+
+从消息中获取所有buildId和这个buildId对应的generalId，然后存放成类似于 Map<key, Array> 形式，接着检查一下建筑是否在工作中，检查武将是否被禁用。获取当前武将的双形态的 武将id 列表，循环判断其他形态的武将是否被派遣出去，如果派遣出去的话会将派遣出去的武将卸任，接着派遣当前的武将
+
+
+
+- `grantAppointOneButton` 一键委任
+
+一键委任后需要更新用户属性系统，其中会先对施政练兵进行特殊处理，然后计算武将得分，获取 战争行、发展性、辅助性 的武将列表
+
+并将增量发送给客户端`updatePart`，然后通过 `UserGeneralManager` 将全量武将信息发送给客户端，之后修改兵团，增量更新属性系统中的兵团。
+
+
+
+2. `GeneralAppoint`
+
+
+
+### 3. 存储
+
+武将存储在数据库的 user_general 表中，用户建筑的委派情况存储在 user_office 中
+
+
+
+
+
+
 
