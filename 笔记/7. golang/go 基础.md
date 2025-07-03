@@ -462,7 +462,7 @@ fmt.Printf("arr: %v\n", arr)
 
 
 
-### 3. 切片
+### 3. **`切片`**
 
 切片是一个动态数组，可以增长和缩小。与数组不同，**切片的长度是动态的**，可以在运行时改变。切片是动态的，当添加元素超过当前容量时，Go 会自动扩容。（通过 append 添加时，容量不足会扩容，扩容策略最开始是上次容量的2倍）
 
@@ -728,7 +728,7 @@ x 是 1、2 或 3
 
 ### 3. 循环
 
-#### 3.1 for
+3.1 **`for`**
 
 1. 基本语法
 
@@ -771,7 +771,7 @@ for {
 
 
 
-#### 3.2 for range
+3.2 for **`range`**
 
 用于遍历可迭代对象（如字符串、切片、数组、映射、通道）。
 
@@ -795,89 +795,6 @@ for i, r := range str {
 // Index: 7, Char: 世
 // Index: 10, Char: 界
 ```
-
-
-
-#### 3.3 label
-
-1. 标签必须紧挨在 `for`、`switch/select` 之前，或者在不违背前面规则的前提下，在函数中任意地方
-
-2. break 配合 **标签** 可以退出指定的外层循环，而不是仅退出最内层结构。
-
-```go
-LabelName:
-for ... {
-    for ... {
-        break LabelName // 退出 LabelName 标记的循环
-    }
-}
-```
-
-```go
-// 可以理解成最开层的循环叫做 OuterLoop, break OuterLoop; 会跳出最外层循环
-OuterLoop:
-	for i := range 3 {
-		fmt.Printf("Outer Loop: %v\n", i)
-		for j := range 3 {
-			if i == 1 && j == 1 {
-				break OuterLoop // 退出外层循环
-			}
-			fmt.Printf("i=%d, j=%d\n", i, j)
-		}
-	}
-// 输出
-Outer Loop: 0
-i=0, j=0
-i=0, j=1
-i=0, j=2
-Outer Loop: 1
-i=1, j=0
-```
-
-3. continue 配合 **标签** 可以进入指定的外层循环的下次迭代，而不是再进入最内层循环的下次迭代。
-
-```go
-OuterLoop:
-	for i := range 3 {
-		fmt.Printf("Outer Loop: %v\n", i)
-		for j := range 3 {
-			if i == 1 && j == 1 {
-				continue OuterLoop // 退出外层循环
-			}
-			fmt.Printf("i=%d, j=%d\n", i, j)
-		}
-	}
-// 输出
-Outer Loop: 0
-i=0, j=0
-i=0, j=1
-i=0, j=2
-Outer Loop: 1
-i=1, j=0
-Outer Loop: 2
-i=2, j=0
-i=2, j=1
-i=2, j=2
-```
-
-4. goto 会直接跳转到 `OuterLoop` 标签所在的位置。
-
-```go
-OuterLoop:
-	for i := range 3 {
-		fmt.Printf("Outer Loop: %v\n", i)
-		for j := range 3 {
-			if i == 1 && j == 1 {
-				goto OuterLoop // 退出外层循环
-			}
-			fmt.Printf("i=%d, j=%d\n", i, j)
-		}
-	}
-// 输出
-会陷入死循环，因为 goto 到标签后，它并不会像continue那样让 i + 1
-```
-
-
 
 
 
@@ -975,7 +892,7 @@ func main() {
 }
 ```
 
-闭包：闭包是一个函数（通常是匿名函数）及其捕获的外部作用域变量的组合。闭包能够“记住”定义时环境的变量，并在函数执行时访问或修改这些变量，即使外部作用域已经结束。
+闭包：闭包是一个函数及其捕获的外部作用域变量的组合。闭包能够“记住”定义时环境的变量，并在**函数执行时访问或修改这些变量**，即使外部作用域已经结束。
 
 变量捕获：
 
@@ -1004,7 +921,401 @@ func main() {
 
 
 
+### 5. **`label`**
 
+1. 标签必须紧挨在 `for`、`switch/select` 之前，或者在不违背前面规则的前提下，在函数中任意地方
+
+2. break 配合 **标签** 可以退出指定的外层循环，而不是仅退出最内层结构。
+
+```go
+LabelName:
+for ... {
+    for ... {
+        break LabelName // 退出 LabelName 标记的循环
+    }
+}
+```
+
+```go
+// 可以理解成最开层的循环叫做 OuterLoop, break OuterLoop; 会跳出最外层循环
+OuterLoop:
+	for i := range 3 {
+		fmt.Printf("Outer Loop: %v\n", i)
+		for j := range 3 {
+			if i == 1 && j == 1 {
+				break OuterLoop // 退出外层循环
+			}
+			fmt.Printf("i=%d, j=%d\n", i, j)
+		}
+	}
+// 输出
+Outer Loop: 0
+i=0, j=0
+i=0, j=1
+i=0, j=2
+Outer Loop: 1
+i=1, j=0
+```
+
+3. continue 配合 **标签** 可以进入指定的外层循环的下次迭代，而不是再进入最内层循环的下次迭代。
+
+```go
+OuterLoop:
+	for i := range 3 {
+		fmt.Printf("Outer Loop: %v\n", i)
+		for j := range 3 {
+			if i == 1 && j == 1 {
+				continue OuterLoop // 退出外层循环
+			}
+			fmt.Printf("i=%d, j=%d\n", i, j)
+		}
+	}
+// 输出
+Outer Loop: 0
+i=0, j=0
+i=0, j=1
+i=0, j=2
+Outer Loop: 1
+i=1, j=0
+Outer Loop: 2
+i=2, j=0
+i=2, j=1
+i=2, j=2
+```
+
+4. goto 会直接跳转到 `OuterLoop` 标签所在的位置。
+
+```go
+OuterLoop:
+	for i := range 3 {
+		fmt.Printf("Outer Loop: %v\n", i)
+		for j := range 3 {
+			if i == 1 && j == 1 {
+				goto OuterLoop // 退出外层循环
+			}
+			fmt.Printf("i=%d, j=%d\n", i, j)
+		}
+	}
+// 输出
+会陷入死循环，因为 goto 到标签后，它并不会像continue那样让 i + 1
+```
+
+
+
+
+
+## 五、常用
+
+### 1. **`type `**
+
+type 关键字用于定义新的类型或为现有类型创建别名。
+
+1. **类型别名**
+
+为现有类型（int）创建一个别名，MyInt 和 int 是完全等价的，只是名称不同。MyInt 和 int 是同一个类型，底层完全相同，编译器不会将它们视为不同的类型。
+
+```go
+type MyInt = int
+
+func main() {
+    var a MyInt = 42
+    fmt.Println(a) // 输出: 42
+}
+// myInt 等价于 int
+```
+
+2. **自定义类型**
+
+基于现有类型（int）创建一个新类型，MyInt 是一个独立的类型，尽管底层数据结构与 int 相同。MyInt 和 int 是不同的类型，编译器会严格区分它们。
+
+```go
+type MyInt int // 定义新类型 MyInt，基于 int
+
+func main() {
+    var a MyInt = 42
+    var b int = 10
+    // fmt.Println(a + b) // 错误：类型不匹配
+    fmt.Println(a + MyInt(b)) // 正确：需要显式转换
+}
+```
+
+3. **结构体**
+
+```go
+type Person struct {
+    Name string
+    Age  int
+}
+
+func main() {
+    p := Person{Name: "Alice", Age: 30}
+    fmt.Println(p.Name) // 输出: Alice
+}
+```
+
+4. **接口**
+
+```go
+// 接口
+type Speaker interface {
+    Speak() string
+}
+
+type Person struct {
+    Name string
+}
+
+func (p Person) Speak() string {
+    return "Hello, my name is " + p.Name
+}
+
+func main() {
+    var s Speaker = Person{Name: "Alice"}
+    fmt.Println(s.Speak()) // 输出: Hello, my name is Alice
+}
+```
+
+5. **函数**
+
+```go
+type Operation func(int, int) int
+
+func Add(a, b int) int {
+    return a + b
+}
+
+func main() {
+    var op Operation = Add
+    result := op(3, 4)
+    fmt.Println(result) // 输出: 7
+}
+```
+
+6. **类型嵌套**
+
+Go 通过类型嵌入实现类似继承的功能。嵌入允许将一个类型的字段或方法直接“嵌入”到另一个类型中。嵌入的类型的方法和字段可以直接访问
+
+```go
+type Animal struct {
+    Name string
+}
+
+func (a Animal) Speak() string {
+    return "I am " + a.Name
+}
+
+type Dog struct {
+    Animal // 嵌入 Animal 结构体
+    Breed  string
+}
+
+func main() {
+    d := Dog{Animal: Animal{Name: "Buddy"}, Breed: "Golden Retriever"}
+    fmt.Println(d.Speak()) // 输出: I am Buddy
+}
+```
+
+
+
+### 2. defer
+
+defer 是一个关键字，用于延迟执行一个函数调用或方法调用，直到包含它的函数返回（无论是正常返回还是发生 panic）。defer 常用于资源清理（如关闭文件、释放锁）或确保某些操作在函数退出时执行。
+
+1. defer 后接一个函数调用（可以是命名函数、匿名函数或方法）。
+2. 延迟的函数调用会在包含它的函数返回之前执行。
+
+```go
+func main() {
+    fmt.Println("Start")
+    defer fmt.Println("Deferred call") // 延迟执行
+    fmt.Println("End")
+}
+
+// 输出
+Start
+End
+Deferred call
+```
+
+
+
+### 3. panic
+
+panic 是一个内置函数，用于触发程序的运行时异常，中断正常执行流程。panic 通常表示程序遇到无法继续运行的严重错误（如数组越界、空指针访问）。
+
+1. 参数可以是任意类型，通常是字符串或错误类型，用于描述异常原因。
+2. panic 会导致当前 goroutine 的调用栈展开（unwind），执行所有 defer 语句。如果没有 recover 捕获 panic，程序会崩溃并打印堆栈跟踪。
+
+```go
+func main() {
+    fmt.Println("Start")
+    panic("Something went wrong!") // 触发 panic
+    fmt.Println("End") // 不会执行
+}
+
+// 输出
+Start
+panic: Something went wrong!
+[堆栈跟踪信息]
+```
+
+```go
+package main
+
+import "fmt"
+
+func main() {
+    defer fmt.Println("Cleanup on panic")
+    fmt.Println("Start")
+    panic("Critical error")
+}
+
+// 输出
+Start
+Cleanup on panic
+panic: Critical error
+[堆栈跟踪信息]
+```
+
+
+
+### 4. recover
+
+recover 是一个内置函数，用于捕获和处理 panic，防止程序崩溃。recover 必须在 defer 函数中调用，因为只有延迟函数才能在 panic 传播时捕获异常。
+
+```go
+func main() {
+    defer func() {
+        if r := recover(); r != nil {
+            fmt.Println("Recovered from:", r)
+        }
+    }()
+    fmt.Println("Start")
+    panic("Critical error")
+    fmt.Println("End") // 不会执行
+}
+
+// 输出
+Start
+Recovered from: Critical error
+```
+
+```go
+http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+    defer func() {
+        if err := recover(); err != nil {
+            log.Printf("Panic: %v", err)
+            http.Error(w, "Internal Server Error", 500)
+        }
+    }()
+    riskyOperation()
+})
+// 在服务器程序中捕获 panic，确保服务继续运行。记录 panic 信息以便调试。
+```
+
+
+
+### 5. time 包
+
+```go
+func main() {
+	// 获取当前时间
+	now := time.Now()
+	fmt.Println("Current time:", now)
+	fmt.Printf("now.Year(): %v\n", now.Year())
+	fmt.Printf("now.Month(): %v\n", now.Month())
+	fmt.Printf("now.Day(): %v\n", now.Day())
+	fmt.Printf("now.Hour(): %v\n", now.Hour())
+	fmt.Printf("now.Minute(): %v\n", now.Minute())
+	fmt.Printf("now.Second(): %v\n", now.Second())
+
+	fmt.Printf("time.Hour: %v\n", time.Hour)     //1 h
+	fmt.Printf("time.Minute: %v\n", time.Minute) // 1 m
+	fmt.Printf("time.Second: %v\n", time.Second) // 1 s
+
+	future := now.Add(2 * time.Hour) // 在当前时间基础上增加2小时
+	duration := future.Sub(now)      // 2 消失
+	fmt.Println("Future time:", future)
+	fmt.Println("Duration:", duration)                     // 输出: Duration: 2h0m0s
+	fmt.Println("Is future after now?", future.After(now)) // 输出: true
+}
+
+// 输出
+urrent time: 2025-07-02 23:00:02.4874845 +0800 CST m=+0.000000001
+now.Year(): 2025
+now.Month(): July
+now.Day(): 2
+now.Hour(): 23
+now.Minute(): 0
+now.Second(): 2
+time.Hour: 1h0m0s
+time.Minute: 1m0s
+time.Second: 1s
+Future time: 2025-07-03 01:00:02.4874845 +0800 CST m=+7200.000000001
+Duration: 2h0m0s
+Is future after now? true
+```
+
+
+
+
+
+
+
+## 六、进阶
+
+### 1. 定时器
+
+在 Go 语言中，**定时器（Timer）**和 **周期性触发器（Ticker）**是 time 包提供的两种核心机制，用于处理时间相关的任务。两者都基于 Go 的并发模型，通过通道（chan）与 goroutine 配合使用，提供了高效、简洁的定时功能。
+
+`time.Timer`：用于在指定时间后触发一次事件，常用于超时控制或延迟执行。
+
+`time.Ticker`：用于按固定时间间隔重复触发事件，常用于周期性任务。
+
+
+
+### 2. 指针
+
+Go 语言中，指针（pointer）是一种重要的特性，用于直接操作内存地址，从而实现高效的数据传递和修改。相比 C/C++ 的指针，Go 限制了一些不安全的操作（如指针算术），同时保留了指针的核心功能。
+
+1. 什么是指针
+
+指针**是一个变量**，**存储**的是**另一个变量的内存地址**。
+
+**定义**指针：`var p *T`（T 是任意类型，如 int、string、结构体等）。
+
+**获取地址**：`&x` 返回变量 x 的内存地址。
+
+**解引用**：`*p` 访问指针 `p` 指向的变量的值。
+
+2. 定义并初始化
+
+```go
+var p *int // 声明一个 int 指针，初始值为 nil
+
+x := 42
+p = &x // p 指向 x 的地址
+
+p = new(int) // 分配 int 类型的内存，初始值为 0
+*p = 42      // 设置指针指向的值
+```
+
+
+
+### 3. make 和 new
+
+`make` 和 `new`是两个是 golang 种用于内存分配的内置函数
+
+`new(T)` 
+
+1. 分配类型 T 的零值内存，并返回指向该内存的指针 `*T`。
+2. 为任意类型（包括基本类型、结构体、指针等）分配内存。并返回指向该内存的指针。
+
+`make(T, args)` 
+
+1. 用于创建并初始化特定类型的对象，仅适用于切片（slice）、映射（map）和通道（chan）。
+2. 分配内存并初始化内部数据结构（如切片的底层数组、映射的哈希表、通道的缓冲区）。
+3. 返回初始化后的对象（不是指针），类型为 `T`。
 
 
 
@@ -1080,7 +1391,6 @@ fmt.Println(value)  // 输出 42
 5. Buffered Channels（缓冲区 Channel）
 
 Go 还支持 **缓冲区 channel**，这使得可以向 channel 发送数据而不需要立即有接收方。通过为 channel 指定缓冲区大小，你可以在缓冲区满之前将数据发送到 channel 中，接收方再从缓冲区取数据。
-
 
 
 
