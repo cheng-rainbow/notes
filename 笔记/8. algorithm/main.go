@@ -2,30 +2,42 @@ package main
 
 import (
 	"fmt"
-
-	"github.com/shopspring/decimal"
+	"strings"
 )
 
-func main() {
-	price, err := decimal.NewFromString("136.02")
-	if err != nil {
-		panic(err)
+type ValidationError struct {
+	Field   string
+	Value   interface{}
+	Message string
+}
+
+// 实现 Error 接口
+func (e *ValidationError) Error() string {
+	return fmt.Sprintf("validation failed for field '%s' with value '%v': %s",
+		e.Field, e.Value, e.Message)
+}
+
+func validateEmail(email string) error {
+	if !strings.Contains(email, "@") {
+		return &ValidationError{ // 创建一个ValidationError对象返回，会自动调用 Error()
+			Field:   "email",
+			Value:   email,
+			Message: "must contain @ symbol",
+		}
 	}
+	return nil
+}
+func main() {
 
-	quantity := decimal.NewFromInt(3)
+	var n *int
+	fmt.Printf("n: %v\n", n)
 
-	fee, _ := decimal.NewFromString(".035")
-	taxRate, _ := decimal.NewFromString(".08875")
+	n = new(int)
+	fmt.Printf("n: %v\n", n)
 
-	subtotal := price.Mul(quantity)
+	x := 1
+	n = &x
+	*n = 10
 
-	preTax := subtotal.Mul(fee.Add(decimal.NewFromFloat(1)))
-
-	total := preTax.Mul(taxRate.Add(decimal.NewFromFloat(1)))
-
-	fmt.Println("Subtotal:", subtotal)                      // Subtotal: 408.06
-	fmt.Println("Pre-tax:", preTax)                         // Pre-tax: 422.3421
-	fmt.Println("Taxes:", total.Sub(preTax))                // Taxes: 37.482861375
-	fmt.Println("Total:", total)                            // Total: 459.824961375
-	fmt.Println("Tax rate:", total.Sub(preTax).Div(preTax)) // Tax rate: 0.08875
+	fmt.Printf("n: %v\n", x)
 }
