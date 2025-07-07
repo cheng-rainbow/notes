@@ -1,4 +1,4 @@
-## 一、诞生背景与设计理念
+## 	一、诞生背景与设计理念
 
 
 
@@ -3635,75 +3635,176 @@ func main() {
 
 反射是Go语言的一个强大特性，它允许程序在运行时**检查和操作对象的类型和值**。Go的反射机制主要通过`reflect`包来实现，提供了检查类型信息、动态调用方法、操作结构体字段等功能。
 
-#### 1.1 反射基础概念
 
-1. 反射的核心类型
+
+#### 1.1 反射的核心类型
 
 Go反射的核心是两个类型：`reflect.Type`和`reflect.Value`。
 
-```go
-package main
+**Type vs Kind**
 
-import (
-    "fmt"
-    "reflect"
-)
+- **Type**: 具体的类型名称，如`main.Int`、`string`、`MyStruct`
+- **Kind**: 类型的底层种类，如`int`、`struct`
 
-func main() {
-    var x float64 = 3.14
-    
-    // 获取类型信息
-    t := reflect.TypeOf(x)
-    fmt.Printf("Type: %v\n", t)        // Type: float64
-    fmt.Printf("Kind: %v\n", t.Kind()) // Kind: float64
-    
-    // 获取值信息
-    v := reflect.ValueOf(x)
-    fmt.Printf("Value: %v\n", v)           // Value: 3.14
-    fmt.Printf("Type: %v\n", v.Type())     // Type: float64
-    fmt.Printf("Kind: %v\n", v.Kind())     // Kind: float64
-    fmt.Printf("Float: %v\n", v.Float())   // Float: 3.14
-}
-```
+**核心函数**：
 
-2. Type vs Kind
-
-- **Type**: 具体的类型名称，如`int`、`string`、`MyStruct`
-- **Kind**: 类型的底层种类，如`Int`、`String`、`Struct`
+- `reflect.TypeOf(interface{})`: 返回`reflect.Type`，获取值的类型信息
+- `reflect.ValueOf(interface{})`: 返回`reflect.Value`，获取值的反射对象
 
 ```go
 package main
 
 import (
-    "fmt"
-    "reflect"
+	"fmt"
+	"reflect"
 )
 
-type MyInt int
-type Person struct {
-    Name string
-    Age  int
-}
+type Int int
 
 func main() {
-    var mi MyInt = 42
-    var p Person = Person{Name: "Alice", Age: 30}
+	var a Int = 1
+
+	// reflect.TypeOf() 返回 reflect.Type
+	t := reflect.TypeOf(a)
+	// reflect.ValueOf() 返回 reflect.Value
+	v := reflect.ValueOf(a)
+	
+	fmt.Printf("t: %v\n", t)           // type: main.Int
+	fmt.Printf("kind: %v\n", t.Kind()) // kind: int (底层类型)
+	fmt.Printf("v: %v\n", v)           // value: 1
+	
+	// Type 和 Value 的常用方法
+	fmt.Printf("Type name: %s\n", t.Name())         
+	fmt.Printf("Type string: %s\n", t.String())     
+	fmt.Printf("Value type: %s\n", v.Type())      
+	fmt.Printf("Value kind: %s\n", v.Kind())      
+	fmt.Printf("Value interface: %v\n", v.Interface())
+}
+
+t: main.Int
+kind: int
+v: 1
+
+Type name: Int
+Type string: main.Int
+Value type: main.Int
+Value kind: int
+Value interface: 1
+```
+
+#### 1.2 reflect.Type 重要方法
+
+```go
+// reflect.Type 接口的主要方法
+type Type interface {
+    Name() string        // 返回类型名称，如"Int"
+    String() string      // 返回类型完整描述，如"main.Int"
+    Kind() Kind         // 返回底层类型种类
+    Size() uintptr      // 返回存储该类型值所需的字节数
     
-    // MyInt的Type和Kind
-    fmt.Printf("MyInt Type: %v, Kind: %v\n", 
-        reflect.TypeOf(mi), reflect.TypeOf(mi).Kind())
-    // 输出: MyInt Type: main.MyInt, Kind: int
+    // 类型比较
+    AssignableTo(u Type) bool    // 返回bool，该类型是否可赋值给u
+    ConvertibleTo(u Type) bool   // 返回bool，该类型是否可转换为u
+    Comparable() bool            // 返回bool，该类型是否可比较
+    Implements(u Type) bool      // 返回bool，该类型是否实现了接口u
     
-    // Person的Type和Kind
-    fmt.Printf("Person Type: %v, Kind: %v\n", 
-        reflect.TypeOf(p), reflect.TypeOf(p).Kind())
-    // 输出: Person Type: main.Person, Kind: struct
+    // 复合类型方法
+    Elem() Type         // 返回Type，用于指针、数组、切片、Map、通道
+    Key() Type          // 返回Type，用于Map的键类型
+    Len() int           // 返回int，用于数组长度
+    
+    // 结构体相关
+    NumField() int              // 返回int，结构体字段数量
+    Field(i int) StructField    // 返回StructField，第i个字段
+    FieldByName(name string) (StructField, bool) // 按名称查找字段
+    
+    // 方法相关
+    NumMethod() int             // 返回int，方法数量
+    Method(i int) Method        // 返回Method，第i个方法
+    MethodByName(name string) (Method, bool) // 按名称查找方法
+    
+    // 函数相关
+    NumIn() int         // 返回int，输入参数数量
+    NumOut() int        // 返回int，输出参数数量
+    In(i int) Type      // 返回Type，第i个输入参数类型
+    Out(i int) Type     // 返回Type，第i个输出参数类型
+    IsVariadic() bool   // 返回bool，是否为可变参数函数
 }
 ```
 
-#### 1.2 基本类型的反射
+#### 1.3 reflect.Value 重要方法
 
-1. 基本数据类型
+```go
+// reflect.Value 结构的主要方法
+type Value struct {
+    // 基本信息
+    Type() Type         // 返回reflect.Type
+    Kind() Kind         // 返回reflect.Kind
+    Interface() interface{} // 返回interface{}，原始值
+    
+    // 类型检查
+    IsNil() bool        // 返回bool，是否为nil（指针、切片、Map等）
+    IsValid() bool      // 返回bool，是否为有效值
+    IsZero() bool       // 返回bool，是否为零值
+    
+    // 可修改性
+    CanSet() bool       // 返回bool，是否可以修改
+    CanAddr() bool      // 返回bool，是否可以获取地址
+    CanInterface() bool // 返回bool，是否可以调用Interface()
+    
+    // 获取值
+    Bool() bool         // 返回bool值
+    Int() int64         // 返回int64值
+    Uint() uint64       // 返回uint64值
+    Float() float64     // 返回float64值
+    String() string     // 返回string值
+    Bytes() []byte      // 返回[]byte值
+    
+    // 设置值
+    SetBool(x bool)      // 设置bool值
+    SetInt(x int64)      // 设置int值
+    SetUint(x uint64)    // 设置uint值
+    SetFloat(x float64)  // 设置float值
+    SetString(x string)  // 设置string值
+    SetBytes(x []byte)   // 设置[]byte值
+    Set(x Value)         // 设置为另一个Value
+    
+    // 复合类型操作
+    Len() int           // 返回int，长度（数组、切片、Map、字符串）
+    Cap() int           // 返回int，容量（切片、通道）
+    Index(i int) Value  // 返回Value，索引访问
+    Slice(i, j int) Value // 返回Value，切片操作
+    
+    // 结构体操作
+    NumField() int              // 返回int，字段数量
+    Field(i int) Value          // 返回Value，第i个字段
+    FieldByName(name string) Value // 返回Value，按名称查找字段
+    
+    // 方法操作
+    NumMethod() int             // 返回int，方法数量
+    Method(i int) Value         // 返回Value，第i个方法
+    MethodByName(name string) Value // 返回Value，按名称查找方法
+    Call(args []Value) []Value  // 返回[]Value，调用方法
+    
+    // 指针操作
+    Elem() Value        // 返回Value，指针指向的值
+    Addr() Value        // 返回Value，获取地址
+    
+    // Map操作
+    MapKeys() []Value           // 返回[]Value，所有键
+    MapIndex(key Value) Value   // 返回Value，根据键获取值
+    SetMapIndex(key, val Value) // 设置Map键值对
+    
+    // 通道操作
+    Send(x Value)       // 发送值到通道
+    Recv() (Value, bool) // 从通道接收值，返回(Value, 是否成功)
+    Close()             // 关闭通道
+}
+```
+
+
+
+#### 1.4 基本数据类型
 
 ```go
 package main
@@ -3714,23 +3815,35 @@ import (
 )
 
 func analyzeValue(x interface{}) {
-    v := reflect.ValueOf(x)
-    t := reflect.TypeOf(x)
+    v := reflect.ValueOf(x)  // 获取反射值对象
+    t := reflect.TypeOf(x)   // 获取反射类型对象
     
     fmt.Printf("Value: %v, Type: %v, Kind: %v\n", v, t, v.Kind())
     
+    // v.Kind() 返回 reflect.Kind 类型
     switch v.Kind() {
     case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+        // v.Int() 返回 int64
         fmt.Printf("Integer value: %d\n", v.Int())
     case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+        // v.Uint() 返回 uint64
         fmt.Printf("Unsigned integer value: %d\n", v.Uint())
     case reflect.Float32, reflect.Float64:
+        // v.Float() 返回 float64
         fmt.Printf("Float value: %f\n", v.Float())
     case reflect.String:
+        // v.String() 返回 string
         fmt.Printf("String value: %s\n", v.String())
     case reflect.Bool:
+        // v.Bool() 返回 bool
         fmt.Printf("Boolean value: %t\n", v.Bool())
     }
+    
+    // 其他有用的方法
+    fmt.Printf("Type size: %d bytes\n", t.Size())          // 返回 uintptr
+    fmt.Printf("Is zero value: %t\n", v.IsZero())          // 返回 bool
+    fmt.Printf("Can set: %t\n", v.CanSet())               // 返回 bool
+    fmt.Printf("Can interface: %t\n", v.CanInterface())   // 返回 bool
     fmt.Println("---")
 }
 
@@ -3743,7 +3856,7 @@ func main() {
 }
 ```
 
-2. 指针类型的反射
+#### 1.5 指针类型的反射
 
 ```go
 package main
@@ -3757,31 +3870,43 @@ func main() {
     x := 42
     ptr := &x
     
-    v := reflect.ValueOf(ptr)
-    t := reflect.TypeOf(ptr)
+    v := reflect.ValueOf(ptr)  // 获取指针的反射值
+    t := reflect.TypeOf(ptr)   // 获取指针的反射类型
     
     fmt.Printf("Pointer Type: %v, Kind: %v\n", t, v.Kind())
     
     // 检查是否是指针
     if v.Kind() == reflect.Ptr {
-        fmt.Printf("Points to type: %v\n", v.Type().Elem())
+        // t.Elem() 返回指针指向的类型
+        fmt.Printf("Points to type: %v\n", t.Elem())
         
-        // 获取指针指向的值
+        // v.Elem() 返回指针指向的值
         elem := v.Elem()
         fmt.Printf("Value pointed to: %v\n", elem.Int())
         
-        // 检查是否可以设置值
+        // elem.CanSet() 返回 bool，检查是否可以设置值
         if elem.CanSet() {
-            elem.SetInt(100)
+            elem.SetInt(100)  // 设置新值
             fmt.Printf("After setting: %v\n", x)
         }
     }
+    
+    // 指针的其他操作
+    fmt.Printf("Pointer is nil: %t\n", v.IsNil())      // 返回 bool
+    fmt.Printf("Pointer is valid: %t\n", v.IsValid())  // 返回 bool
+    
+    // 从值创建指针
+    y := 200
+    yValue := reflect.ValueOf(&y).Elem()
+    // yValue.Addr() 返回指向该值的指针
+    yPtr := yValue.Addr()
+    fmt.Printf("Created pointer: %v\n", yPtr.Interface())
 }
 ```
 
-#### 1.3结构体反射
 
-1. 结构体字段操作
+
+#### 1.6 结构体字段操作
 
 ```go
 package main
@@ -3812,8 +3937,8 @@ func analyzeStruct(s interface{}) {
     
     // 如果是指针，获取其指向的元素
     if v.Kind() == reflect.Ptr {
-        v = v.Elem()
-        t = t.Elem()
+        v = v.Elem()  // 返回指针指向的Value
+        t = t.Elem()  // 返回指针指向的Type
     }
     
     if v.Kind() != reflect.Struct {
@@ -3821,22 +3946,36 @@ func analyzeStruct(s interface{}) {
         return
     }
     
+    // t.Name() 返回类型名称
     fmt.Printf("Struct name: %s\n", t.Name())
+    // v.NumField() 返回字段数量
     fmt.Printf("Number of fields: %d\n", v.NumField())
     
     // 遍历结构体字段
     for i := 0; i < v.NumField(); i++ {
+        // t.Field(i) 返回 StructField
         field := t.Field(i)
+        // v.Field(i) 返回字段的 Value
         value := v.Field(i)
         
         fmt.Printf("Field %d:\n", i)
-        fmt.Printf("  Name: %s\n", field.Name)
-        fmt.Printf("  Type: %s\n", field.Type)
-        fmt.Printf("  Tag: %s\n", field.Tag)
-        fmt.Printf("  Value: %v\n", value.Interface())
+        fmt.Printf("  Name: %s\n", field.Name)           // 字段名
+        fmt.Printf("  Type: %s\n", field.Type)           // 字段类型
+        fmt.Printf("  Tag: %s\n", field.Tag)             // 字段标签
+        fmt.Printf("  Offset: %d\n", field.Offset)       // 字段偏移量
+        fmt.Printf("  Index: %v\n", field.Index)         // 字段索引
+        fmt.Printf("  Anonymous: %t\n", field.Anonymous) // 是否匿名字段
+        fmt.Printf("  Exported: %t\n", field.PkgPath == "") // 是否导出
+        
+        // 获取字段值（如果可以）
+        if value.CanInterface() {
+            fmt.Printf("  Value: %v\n", value.Interface())
+        } else {
+            fmt.Printf("  Value: <unexported>\n")
+        }
         fmt.Printf("  CanSet: %v\n", value.CanSet())
         
-        // 获取特定标签
+        // field.Tag.Get() 返回指定标签的值
         if jsonTag := field.Tag.Get("json"); jsonTag != "" {
             fmt.Printf("  JSON tag: %s\n", jsonTag)
         }
@@ -3845,6 +3984,17 @@ func analyzeStruct(s interface{}) {
         }
         
         fmt.Println()
+    }
+    
+    // 按名称查找字段
+    // t.FieldByName() 返回 (StructField, bool)
+    if field, ok := t.FieldByName("Name"); ok {
+        fmt.Printf("Found field 'Name': %s\n", field.Type)
+    }
+    
+    // v.FieldByName() 返回字段的 Value
+    if nameField := v.FieldByName("Email"); nameField.IsValid() {
+        fmt.Printf("Email field value: %v\n", nameField.Interface())
     }
 }
 
@@ -3879,7 +4029,7 @@ func main() {
 }
 ```
 
-2. 结构体方法调用
+#### 1.7 结构体方法调用
 
 ```go
 package main
@@ -3914,24 +4064,40 @@ func callMethods(obj interface{}) {
     t := reflect.TypeOf(obj)
     
     fmt.Printf("Object type: %s\n", t)
+    // v.NumMethod() 返回方法数量
     fmt.Printf("Number of methods: %d\n", v.NumMethod())
     
     // 遍历所有方法
     for i := 0; i < v.NumMethod(); i++ {
+        // t.Method(i) 返回 Method 结构
         method := t.Method(i)
         fmt.Printf("Method %d: %s\n", i, method.Name)
-        fmt.Printf("  Type: %s\n", method.Type)
-        fmt.Printf("  Num inputs: %d\n", method.Type.NumIn())
-        fmt.Printf("  Num outputs: %d\n", method.Type.NumOut())
+        fmt.Printf("  Type: %s\n", method.Type)           // 方法类型
+        fmt.Printf("  Func: %v\n", method.Func)           // 方法函数
+        fmt.Printf("  Index: %d\n", method.Index)         // 方法索引
+        fmt.Printf("  Num inputs: %d\n", method.Type.NumIn())   // 输入参数数量
+        fmt.Printf("  Num outputs: %d\n", method.Type.NumOut()) // 输出参数数量
+        
+        // 打印输入参数类型
+        for j := 0; j < method.Type.NumIn(); j++ {
+            fmt.Printf("    Input %d: %s\n", j, method.Type.In(j))
+        }
+        
+        // 打印输出参数类型
+        for j := 0; j < method.Type.NumOut(); j++ {
+            fmt.Printf("    Output %d: %s\n", j, method.Type.Out(j))
+        }
         fmt.Println()
     }
     
     // 调用特定方法
+    // v.MethodByName() 返回方法的 Value
     if method := v.MethodByName("Add"); method.IsValid() {
         args := []reflect.Value{
             reflect.ValueOf(10),
             reflect.ValueOf(20),
         }
+        // method.Call() 返回 []reflect.Value
         results := method.Call(args)
         fmt.Printf("Add(10, 20) = %v\n", results[0].Int())
     }
@@ -3960,12 +4126,18 @@ func main() {
         method.Call(args)
         fmt.Printf("After SetName: %s\n", calc.Name)
     }
+    
+    // 检查方法是否存在
+    // t.MethodByName() 返回 (Method, bool)
+    if method, ok := reflect.TypeOf(&calc).MethodByName("SetName"); ok {
+        fmt.Printf("Found method SetName: %s\n", method.Type)
+    }
 }
 ```
 
-#### 1.4 切片和数组反射
 
-1. 切片操作
+
+#### 1.8 切片操作
 
 ```go
 package main
@@ -3985,12 +4157,17 @@ func analyzeSlice(s interface{}) {
     }
     
     fmt.Printf("Slice type: %s\n", t)
+    // t.Elem() 返回切片元素的类型
     fmt.Printf("Element type: %s\n", t.Elem())
+    // v.Len() 返回切片长度
     fmt.Printf("Length: %d\n", v.Len())
-    fmt.Printf("Capacity: %d\n", v.Cap())
+    // v.Cap() 返回切片容量
+    fmt.Printf("Cap: %d\n", v.Cap())
+    fmt.Printf("Is nil: %t\n", v.IsNil())
     
     // 遍历切片元素
     for i := 0; i < v.Len(); i++ {
+        // v.Index(i) 返回第i个元素的Value
         elem := v.Index(i)
         fmt.Printf("Element %d: %v (type: %s)\n", i, elem.Interface(), elem.Type())
     }
@@ -4004,11 +4181,19 @@ func analyzeSlice(s interface{}) {
             v.Index(0).SetString("modified")
         }
     }
+    
+    // 切片操作
+    if v.Len() > 2 {
+        // v.Slice(i, j) 返回切片[i:j]的Value
+        subSlice := v.Slice(1, 3)
+        fmt.Printf("SubSlice [1:3]: %v\n", subSlice.Interface())
+    }
 }
 
 func createSlice(elementType reflect.Type, length int) interface{} {
-    // 动态创建切片
+    // reflect.SliceOf() 返回切片类型
     sliceType := reflect.SliceOf(elementType)
+    // reflect.MakeSlice() 创建切片，返回Value
     slice := reflect.MakeSlice(sliceType, length, length)
     
     // 填充初始值
@@ -4023,6 +4208,29 @@ func createSlice(elementType reflect.Type, length int) interface{} {
     }
     
     return slice.Interface()
+}
+
+func sliceOperations() {
+    // 创建切片
+    s := []int{1, 2, 3, 4, 5}
+    v := reflect.ValueOf(&s).Elem() // 获取可修改的切片
+    
+    // 追加元素
+    // reflect.Append() 返回新的切片Value
+    newSlice := reflect.Append(v, reflect.ValueOf(6))
+    v.Set(newSlice)
+    fmt.Printf("After append: %v\n", s)
+    
+    // 追加多个元素
+    newSlice = reflect.AppendSlice(v, reflect.ValueOf([]int{7, 8, 9}))
+    v.Set(newSlice)
+    fmt.Printf("After append slice: %v\n", s)
+    
+    // 复制切片
+    dest := reflect.MakeSlice(v.Type(), v.Len(), v.Cap())
+    // reflect.Copy() 返回复制的元素数量
+    n := reflect.Copy(dest, v)
+    fmt.Printf("Copied %d elements: %v\n", n, dest.Interface())
 }
 
 func main() {
@@ -4045,10 +4253,14 @@ func main() {
     
     dynamicStringSlice := createSlice(reflect.TypeOf(string("")), 3)
     fmt.Printf("Dynamic string slice: %v\n", dynamicStringSlice)
+    
+    // 切片操作
+    fmt.Println("\n--- Slice operations ---")
+    sliceOperations()
 }
 ```
 
-2. 数组操作
+#### 1.9 数组操作
 
 ```go
 package main
@@ -4068,14 +4280,45 @@ func analyzeArray(a interface{}) {
     }
     
     fmt.Printf("Array type: %s\n", t)
+    // t.Elem() 返回数组元素类型
     fmt.Printf("Element type: %s\n", t.Elem())
-    fmt.Printf("Length: %d\n", v.Len())
+    // t.Len() 返回数组长度（编译时确定）
+    fmt.Printf("Length: %d\n", t.Len())
+    // v.Len() 也返回数组长度
+    fmt.Printf("Value length: %d\n", v.Len())
     
     // 遍历数组元素
     for i := 0; i < v.Len(); i++ {
         elem := v.Index(i)
         fmt.Printf("Element %d: %v\n", i, elem.Interface())
     }
+    
+    // 数组切片操作
+    if v.Len() > 2 {
+        slice := v.Slice(1, 3)
+        fmt.Printf("Array slice [1:3]: %v\n", slice.Interface())
+    }
+}
+
+func createArray(elementType reflect.Type, length int) interface{} {
+    // reflect.ArrayOf() 创建数组类型
+    arrayType := reflect.ArrayOf(length, elementType)
+    // reflect.New() 创建指向新零值的指针
+    arrayPtr := reflect.New(arrayType)
+    array := arrayPtr.Elem()
+    
+    // 填充数组
+    for i := 0; i < length; i++ {
+        elem := array.Index(i)
+        switch elementType.Kind() {
+        case reflect.Int:
+            elem.SetInt(int64(i * 5))
+        case reflect.String:
+            elem.SetString(fmt.Sprintf("arr_%d", i))
+        }
+    }
+    
+    return array.Interface()
 }
 
 func main() {
@@ -4090,17 +4333,33 @@ func main() {
     analyzeArray(stringArray)
     
     // 修改数组元素（需要传递指针）
+    fmt.Println("\n--- Modifying array ---")
     v := reflect.ValueOf(&intArray).Elem()
     if v.Index(0).CanSet() {
         v.Index(0).SetInt(100)
         fmt.Printf("After modification: %v\n", intArray)
     }
+    
+    // 动态创建数组
+    fmt.Println("\n--- Dynamic array creation ---")
+    dynamicIntArray := createArray(reflect.TypeOf(int(0)), 4)
+    fmt.Printf("Dynamic int array: %v\n", dynamicIntArray)
+    
+    dynamicStringArray := createArray(reflect.TypeOf(string("")), 3)
+    fmt.Printf("Dynamic string array: %v\n", dynamicStringArray)
+    
+    // 数组与切片的转换
+    fmt.Println("\n--- Array to slice conversion ---")
+    arrValue := reflect.ValueOf(&intArray).Elem()
+    // 将数组转换为切片
+    sliceValue := arrValue.Slice(0, arrValue.Len())
+    fmt.Printf("Array as slice: %v\n", sliceValue.Interface())
 }
 ```
 
-#### 1.5 Map反射
 
-1. Map操作
+
+#### 1.10 Map操作
 
 ```go
 package main
@@ -4120,18 +4379,28 @@ func analyzeMap(m interface{}) {
     }
     
     fmt.Printf("Map type: %s\n", t)
+    // t.Key() 返回Map键的类型
     fmt.Printf("Key type: %s\n", t.Key())
+    // t.Elem() 返回Map值的类型
     fmt.Printf("Value type: %s\n", t.Elem())
+    // v.Len() 返回Map中键值对数量
     fmt.Printf("Length: %d\n", v.Len())
+    fmt.Printf("Is nil: %t\n", v.IsNil())
+    
+    // v.MapKeys() 返回所有键的[]reflect.Value
+    keys := v.MapKeys()
+    fmt.Printf("Number of keys: %d\n", len(keys))
     
     // 遍历Map
-    keys := v.MapKeys()
     for _, key := range keys {
+        // v.MapIndex(key) 返回对应键的值
         value := v.MapIndex(key)
-        fmt.Printf("Key: %v, Value: %v\n", key.Interface(), value.Interface())
+        fmt.Printf("Key: %v (type: %s), Value: %v (type: %s)\n", 
+            key.Interface(), key.Type(), value.Interface(), value.Type())
     }
     
     // 设置新的键值对
+    // v.SetMapIndex(key, value) 设置Map键值对
     if v.Type().Key().Kind() == reflect.String && v.Type().Elem().Kind() == reflect.Int {
         newKey := reflect.ValueOf("new_key")
         newValue := reflect.ValueOf(999)
@@ -4141,13 +4410,23 @@ func analyzeMap(m interface{}) {
     
     // 删除键值对
     if len(keys) > 0 {
-        v.SetMapIndex(keys[0], reflect.Value{}) // 传递零值删除
+        // 传递零值删除键值对
+        v.SetMapIndex(keys[0], reflect.Value{})
         fmt.Println("Deleted first key-value pair")
+    }
+    
+    // 检查键是否存在
+    if len(keys) > 0 {
+        testKey := keys[0]
+        value := v.MapIndex(testKey)
+        fmt.Printf("Key exists: %t\n", value.IsValid())
     }
 }
 
 func createMap(keyType, valueType reflect.Type) interface{} {
+    // reflect.MapOf() 创建Map类型
     mapType := reflect.MapOf(keyType, valueType)
+    // reflect.MakeMap() 创建Map，返回Value
     mapValue := reflect.MakeMap(mapType)
     
     // 添加一些示例数据
@@ -4158,6 +4437,33 @@ func createMap(keyType, valueType reflect.Type) interface{} {
     }
     
     return mapValue.Interface()
+}
+
+func mapOperations() {
+    // 创建并操作Map
+    m := make(map[string]int)
+    v := reflect.ValueOf(&m).Elem()
+    
+    // 动态添加键值对
+    v.SetMapIndex(reflect.ValueOf("apple"), reflect.ValueOf(10))
+    v.SetMapIndex(reflect.ValueOf("banana"), reflect.ValueOf(20))
+    
+    fmt.Printf("Map after additions: %v\n", m)
+    
+    // 获取特定键的值
+    appleValue := v.MapIndex(reflect.ValueOf("apple"))
+    if appleValue.IsValid() {
+        fmt.Printf("Apple value: %d\n", appleValue.Int())
+    }
+    
+    // 迭代Map
+    iter := v.MapRange()
+    fmt.Println("Iterating with MapRange:")
+    for iter.Next() {
+        key := iter.Key()
+        value := iter.Value()
+        fmt.Printf("  %v: %v\n", key.Interface(), value.Interface())
+    }
 }
 
 func main() {
@@ -4184,12 +4490,16 @@ func main() {
     }
     fmt.Println("\n--- Complex map ---")
     analyzeMap(complexMap)
+    
+    // Map操作
+    fmt.Println("\n--- Map operations ---")
+    mapOperations()
 }
 ```
 
-#### 1.6 接口反射
 
-1. 接口类型检查
+
+#### 1.11 接口类型检查
 
 ```go
 package main
@@ -4207,6 +4517,11 @@ type Writer interface {
     Write(string) error
 }
 
+type ReadWriter interface {
+    Read() string
+    Write(string) error
+}
+
 type Person struct {
     Name string
 }
@@ -4220,6 +4535,10 @@ func (p Person) Write(text string) error {
     return nil
 }
 
+func (p Person) Read() string {
+    return "Reading..."
+}
+
 func analyzeInterface(i interface{}) {
     v := reflect.ValueOf(i)
     t := reflect.TypeOf(i)
@@ -4229,17 +4548,55 @@ func analyzeInterface(i interface{}) {
     fmt.Printf("Kind: %s\n", v.Kind())
     
     // 检查是否实现了特定接口
+    // reflect.TypeOf((*InterfaceType)(nil)).Elem() 获取接口类型
     speakerType := reflect.TypeOf((*Speaker)(nil)).Elem()
     writerType := reflect.TypeOf((*Writer)(nil)).Elem()
+    readWriterType := reflect.TypeOf((*ReadWriter)(nil)).Elem()
     
+    // t.Implements() 返回bool，检查是否实现接口
     fmt.Printf("Implements Speaker: %v\n", t.Implements(speakerType))
     fmt.Printf("Implements Writer: %v\n", t.Implements(writerType))
+    fmt.Printf("Implements ReadWriter: %v\n", t.Implements(readWriterType))
+    
+    // 检查指针类型是否实现接口
+    ptrType := reflect.PtrTo(t)
+    fmt.Printf("Pointer implements Speaker: %v\n", ptrType.Implements(speakerType))
+    fmt.Printf("Pointer implements Writer: %v\n", ptrType.Implements(writerType))
     
     // 如果是接口类型，获取底层具体类型
     if v.Kind() == reflect.Interface {
+        // v.Elem() 获取接口存储的具体值
         concrete := v.Elem()
         fmt.Printf("Concrete type: %s\n", concrete.Type())
         fmt.Printf("Concrete value: %v\n", concrete.Interface())
+        fmt.Printf("Concrete kind: %s\n", concrete.Kind())
+    }
+    
+    // 检查是否可以转换为接口
+    if t.ConvertibleTo(speakerType) {
+        fmt.Println("Can convert to Speaker interface")
+    }
+}
+
+func interfaceOperations() {
+    person := Person{Name: "Alice"}
+    
+    // 动态类型断言
+    var speaker interface{} = person
+    v := reflect.ValueOf(speaker)
+    
+    // 检查具体类型
+    if v.Type() == reflect.TypeOf(Person{}) {
+        p := v.Interface().(Person)
+        fmt.Printf("Successfully asserted to Person: %v\n", p)
+    }
+    
+    // 动态接口转换
+    speakerType := reflect.TypeOf((*Speaker)(nil)).Elem()
+    if v.Type().Implements(speakerType) {
+        // 将值转换为接口
+        speakerInterface := v.Convert(speakerType)
+        fmt.Printf("Converted to Speaker interface: %v\n", speakerInterface.Interface())
     }
 }
 
@@ -4257,19 +4614,12 @@ func main() {
     var empty interface{} = person
     analyzeInterface(empty)
     
-    // 类型断言使用反射
-    fmt.Println("\n--- Type assertion with reflection ---")
-    v := reflect.ValueOf(empty)
-    if v.Type() == reflect.TypeOf(Person{}) {
-        p := v.Interface().(Person)
-        fmt.Printf("Successfully asserted to Person: %v\n", p)
-    }
+    fmt.Println("\n--- Interface operations ---")
+    interfaceOperations()
 }
 ```
 
-#### 1.7 函数反射
-
-1. 函数类型分析和调用
+#### 1.12 函数类型分析和调用
 
 ```go
 package main
@@ -4302,6 +4652,17 @@ func multiply(factor int) func(int) int {
     }
 }
 
+func variadicFunc(prefix string, numbers ...int) string {
+    result := prefix + ": "
+    for i, num := range numbers {
+        if i > 0 {
+            result += ", "
+        }
+        result += fmt.Sprintf("%d", num)
+    }
+    return result
+}
+
 func analyzeFunction(f interface{}) {
     v := reflect.ValueOf(f)
     t := reflect.TypeOf(f)
@@ -4312,25 +4673,39 @@ func analyzeFunction(f interface{}) {
     }
     
     fmt.Printf("Function type: %s\n", t)
+    // t.NumIn() 返回输入参数数量
     fmt.Printf("Number of inputs: %d\n", t.NumIn())
+    // t.NumOut() 返回输出参数数量
     fmt.Printf("Number of outputs: %d\n", t.NumOut())
     
     // 分析输入参数
     fmt.Println("Input parameters:")
     for i := 0; i < t.NumIn(); i++ {
-        fmt.Printf("  Param %d: %s\n", i, t.In(i))
+        // t.In(i) 返回第i个输入参数的类型
+        paramType := t.In(i)
+        fmt.Printf("  Param %d: %s\n", i, paramType)
     }
     
     // 分析输出参数
     fmt.Println("Output parameters:")
     for i := 0; i < t.NumOut(); i++ {
-        fmt.Printf("  Return %d: %s\n", i, t.Out(i))
+        // t.Out(i) 返回第i个输出参数的类型
+        returnType := t.Out(i)
+        fmt.Printf("  Return %d: %s\n", i, returnType)
     }
     
-    // 检查是否是可变参数函数
+    // t.IsVariadic() 返回bool，检查是否是可变参数函数
     if t.IsVariadic() {
         fmt.Println("This is a variadic function")
+        // 最后一个参数是切片类型
+        lastParam := t.In(t.NumIn() - 1)
+        fmt.Printf("Variadic parameter type: %s\n", lastParam)
+        fmt.Printf("Variadic element type: %s\n", lastParam.Elem())
     }
+    
+    // 检查函数是否可以调用
+    fmt.Printf("Can call: %t\n", v.IsValid())
+    fmt.Printf("Is nil: %t\n", v.IsNil())
 }
 
 func callFunction(f interface{}, args ...interface{}) {
@@ -4342,9 +4717,14 @@ func callFunction(f interface{}, args ...interface{}) {
         return
     }
     
-    // 检查参数数量
-    if len(args) != t.NumIn() {
-        fmt.Printf("Expected %d args, got %d\n", t.NumIn(), len(args))
+    // 检查参数数量（对于可变参数函数需要特殊处理）
+    minArgs := t.NumIn()
+    if t.IsVariadic() {
+        minArgs = t.NumIn() - 1
+    }
+    
+    if len(args) < minArgs {
+        fmt.Printf("Expected at least %d args, got %d\n", minArgs, len(args))
         return
     }
     
@@ -4355,7 +4735,14 @@ func callFunction(f interface{}, args ...interface{}) {
     }
     
     // 调用函数
-    results := v.Call(in)
+    var results []reflect.Value
+    if t.IsVariadic() {
+        // v.CallSlice() 用于可变参数函数
+        results = v.CallSlice(in)
+    } else {
+        // v.Call() 用于普通函数
+        results = v.Call(in)
+    }
     
     // 处理返回值
     fmt.Printf("Function call results: ")
@@ -4370,16 +4757,44 @@ func callFunction(f interface{}, args ...interface{}) {
 
 func createFunction() interface{} {
     // 动态创建函数
+    // reflect.FuncOf() 创建函数类型
     fnType := reflect.FuncOf(
         []reflect.Type{reflect.TypeOf(int(0)), reflect.TypeOf(int(0))}, // 输入参数类型
         []reflect.Type{reflect.TypeOf(int(0))},                        // 输出参数类型
         false, // 不是可变参数
     )
     
+    // reflect.MakeFunc() 创建函数值
     fn := reflect.MakeFunc(fnType, func(args []reflect.Value) []reflect.Value {
         a := args[0].Int()
         b := args[1].Int()
         return []reflect.Value{reflect.ValueOf(a * b)}
+    })
+    
+    return fn.Interface()
+}
+
+func createVariadicFunction() interface{} {
+    // 创建可变参数函数
+    fnType := reflect.FuncOf(
+        []reflect.Type{reflect.TypeOf(string("")), reflect.TypeOf([]int{})}, // 最后一个参数是切片
+        []reflect.Type{reflect.TypeOf(string(""))},
+        true, // 是可变参数函数
+    )
+    
+    fn := reflect.MakeFunc(fnType, func(args []reflect.Value) []reflect.Value {
+        prefix := args[0].String()
+        numbers := args[1].Interface().([]int)
+        
+        result := prefix + ": "
+        for i, num := range numbers {
+            if i > 0 {
+                result += ", "
+            }
+            result += fmt.Sprintf("%d", num)
+        }
+        
+        return []reflect.Value{reflect.ValueOf(result)}
     })
     
     return fn.Interface()
@@ -4392,9 +4807,13 @@ func main() {
     fmt.Println("\n--- Analyzing greet function ---")
     analyzeFunction(greet)
     
+    fmt.Println("\n--- Analyzing variadic function ---")
+    analyzeFunction(variadicFunc)
+    
     fmt.Println("\n--- Calling functions ---")
     callFunction(add, 10, 20)
     callFunction(greet, "Alice")
+    callFunction(variadicFunc, "Numbers", []int{1, 2, 3, 4, 5})
     
     fmt.Println("\n--- Higher-order function ---")
     doubler := multiply(2)
@@ -4405,6 +4824,11 @@ func main() {
     dynamicFn := createFunction()
     analyzeFunction(dynamicFn)
     callFunction(dynamicFn, 6, 7)
+    
+    fmt.Println("\n--- Dynamically created variadic function ---")
+    dynamicVariadicFn := createVariadicFunction()
+    analyzeFunction(dynamicVariadicFn)
+    callFunction(dynamicVariadicFn, "Values", []int{10, 20, 30})
     
     // 使用reflect.ValueOf直接调用
     fmt.Println("\n--- Direct function call ---")
@@ -4417,484 +4841,9 @@ func main() {
 }
 ```
 
-#### 1.8 反射的实际应用
 
-1. 结构体验证器
 
-```go
-package main
-
-import (
-    "fmt"
-    "reflect"
-    "strconv"
-    "strings"
-)
-
-type ValidationError struct {
-    Field   string
-    Message string
-}
-
-func (e ValidationError) Error() string {
-    return fmt.Sprintf("Field '%s': %s", e.Field, e.Message)
-}
-
-type User struct {
-    Name     string `validate:"required,min=2,max=50"`
-    Email    string `validate:"required,email"`
-    Age      int    `validate:"min=18,max=100"`
-    Password string `validate:"required,min=8"`
-    Website  string `validate:"url,optional"`
-}
-
-func validateStruct(s interface{}) []ValidationError {
-    var errors []ValidationError
-    
-    v := reflect.ValueOf(s)
-    t := reflect.TypeOf(s)
-    
-    // 如果是指针，获取其指向的元素
-    if v.Kind() == reflect.Ptr {
-        v = v.Elem()
-        t = t.Elem()
-    }
-    
-    if v.Kind() != reflect.Struct {
-        return []ValidationError{{Field: "root", Message: "not a struct"}}
-    }
-    
-    // 遍历结构体字段
-    for i := 0; i < v.NumField(); i++ {
-        field := t.Field(i)
-        value := v.Field(i)
-        
-        // 跳过未导出字段
-        if !value.CanInterface() {
-            continue
-        }
-        
-        // 获取验证标签
-        validateTag := field.Tag.Get("validate")
-        if validateTag == "" {
-            continue
-        }
-        
-        // 解析验证规则
-        rules := strings.Split(validateTag, ",")
-        fieldErrors := validateField(field.Name, value, rules)
-        errors = append(errors, fieldErrors...)
-    }
-    
-    return errors
-}
-
-func validateField(fieldName string, value reflect.Value, rules []string) []ValidationError {
-    var errors []ValidationError
-    
-    for _, rule := range rules {
-        rule = strings.TrimSpace(rule)
-        if rule == "" {
-            continue
-        }
-        
-        // 解析规则和参数
-        parts := strings.Split(rule, "=")
-        ruleName := parts[0]
-        var ruleParam string
-        if len(parts) > 1 {
-            ruleParam = parts[1]
-        }
-        
-        // 应用验证规则
-        if err := applyValidationRule(fieldName, value, ruleName, ruleParam); err != nil {
-            errors = append(errors, *err)
-        }
-    }
-    
-    return errors
-}
-
-func applyValidationRule(fieldName string, value reflect.Value, ruleName, param string) *ValidationError {
-    switch ruleName {
-    case "required":
-        if isEmptyValue(value) {
-            return &ValidationError{Field: fieldName, Message: "is required"}
-        }
-    case "optional":
-        if isEmptyValue(value) {
-            return nil // 可选字段为空时不验证其他规则
-        }
-    case "min":
-        minVal, err := strconv.Atoi(param)
-        if err != nil {
-            return &ValidationError{Field: fieldName, Message: "invalid min parameter"}
-        }
-        
-        switch value.Kind() {
-        case reflect.String:
-            if len(value.String()) < minVal {
-                return &ValidationError{Field: fieldName, Message: fmt.Sprintf("minimum length is %d", minVal)}
-            }
-        case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-            if value.Int() < int64(minVal) {
-                return &ValidationError{Field: fieldName, Message: fmt.Sprintf("minimum value is %d", minVal)}
-            }
-        }
-    case "max":
-        maxVal, err := strconv.Atoi(param)
-        if err != nil {
-            return &ValidationError{Field: fieldName, Message: "invalid max parameter"}
-        }
-        
-        switch value.Kind() {
-        case reflect.String:
-            if len(value.String()) > maxVal {
-                return &ValidationError{Field: fieldName, Message: fmt.Sprintf("maximum length is %d", maxVal)}
-            }
-        case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-            if value.Int() > int64(maxVal) {
-                return &ValidationError{Field: fieldName, Message: fmt.Sprintf("maximum value is %d", maxVal)}
-            }
-        }
-    case "email":
-        if value.Kind() == reflect.String {
-            email := value.String()
-            if !strings.Contains(email, "@") || !strings.Contains(email, ".") {
-                return &ValidationError{Field: fieldName, Message: "must be a valid email"}
-            }
-        }
-    case "url":
-        if value.Kind() == reflect.String {
-            url := value.String()
-            if url != "" && !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
-                return &ValidationError{Field: fieldName, Message: "must be a valid URL"}
-            }
-        }
-    }
-    
-    return nil
-}
-
-func main() {
-    // 有效的用户
-    validUser := User{
-        Name:     "Alice",
-        Email:    "alice@example.com",
-        Age:      25,
-        Password: "securepassword123",
-        Website:  "https://example.com",
-    }
-    
-    fmt.Println("--- Validating valid user ---")
-    if errors := validateStruct(validUser); len(errors) > 0 {
-        fmt.Println("Validation errors:")
-        for _, err := range errors {
-            fmt.Printf("  %s\n", err.Error())
-        }
-    } else {
-        fmt.Println("User is valid")
-    }
-    
-    // 无效的用户
-    invalidUser := User{
-        Name:     "A",                    // 太短
-        Email:    "invalid-email",        // 无效邮箱
-        Age:      15,                     // 太小
-        Password: "123",                  // 太短
-        Website:  "not-a-url",           // 无效URL
-    }
-    
-    fmt.Println("\n--- Validating invalid user ---")
-    if errors := validateStruct(invalidUser); len(errors) > 0 {
-        fmt.Println("Validation errors:")
-        for _, err := range errors {
-            fmt.Printf("  %s\n", err.Error())
-        }
-    } else {
-        fmt.Println("User is valid")
-    }
-}
-```
-
-2. ORM查询构建器
-
-```go
-package main
-
-import (
-    "fmt"
-    "reflect"
-    "strconv"
-    "strings"
-)
-
-type QueryBuilder struct {
-    tableName string
-    fields    []string
-    where     []string
-    orderBy   []string
-    limit     int
-}
-
-func NewQueryBuilder(model interface{}) *QueryBuilder {
-    t := reflect.TypeOf(model)
-    if t.Kind() == reflect.Ptr {
-        t = t.Elem()
-    }
-    
-    // 从结构体类型获取表名
-    tableName := strings.ToLower(t.Name()) + "s"
-    
-    return &QueryBuilder{
-        tableName: tableName,
-        fields:    []string{"*"},
-    }
-}
-
-func (qb *QueryBuilder) Select(fields ...string) *QueryBuilder {
-    qb.fields = fields
-    return qb
-}
-
-func (qb *QueryBuilder) Where(condition string, args ...interface{}) *QueryBuilder {
-    // 简单的参数替换
-    for i, arg := range args {
-        placeholder := fmt.Sprintf("$%d", i+1)
-        var value string
-        
-        v := reflect.ValueOf(arg)
-        switch v.Kind() {
-        case reflect.String:
-            value = fmt.Sprintf("'%s'", v.String())
-        case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-            value = strconv.FormatInt(v.Int(), 10)
-        case reflect.Float32, reflect.Float64:
-            value = strconv.FormatFloat(v.Float(), 'f', -1, 64)
-        case reflect.Bool:
-            value = strconv.FormatBool(v.Bool())
-        default:
-            value = fmt.Sprintf("'%v'", arg)
-        }
-        
-        condition = strings.Replace(condition, placeholder, value, -1)
-    }
-    
-    qb.where = append(qb.where, condition)
-    return qb
-}
-
-func (qb *QueryBuilder) OrderBy(field string, direction string) *QueryBuilder {
-    qb.orderBy = append(qb.orderBy, fmt.Sprintf("%s %s", field, direction))
-    return qb
-}
-
-func (qb *QueryBuilder) Limit(limit int) *QueryBuilder {
-    qb.limit = limit
-    return qb
-}
-
-func (qb *QueryBuilder) Build() string {
-    var query strings.Builder
-    
-    // SELECT
-    query.WriteString("SELECT ")
-    query.WriteString(strings.Join(qb.fields, ", "))
-    
-    // FROM
-    query.WriteString(" FROM ")
-    query.WriteString(qb.tableName)
-    
-    // WHERE
-    if len(qb.where) > 0 {
-        query.WriteString(" WHERE ")
-        query.WriteString(strings.Join(qb.where, " AND "))
-    }
-    
-    // ORDER BY
-    if len(qb.orderBy) > 0 {
-        query.WriteString(" ORDER BY ")
-        query.WriteString(strings.Join(qb.orderBy, ", "))
-    }
-    
-    // LIMIT
-    if qb.limit > 0 {
-        query.WriteString(" LIMIT ")
-        query.WriteString(strconv.Itoa(qb.limit))
-    }
-    
-    return query.String()
-}
-
-// 结构体到Map的转换
-func structToMap(s interface{}) map[string]interface{} {
-    result := make(map[string]interface{})
-    
-    v := reflect.ValueOf(s)
-    t := reflect.TypeOf(s)
-    
-    if v.Kind() == reflect.Ptr {
-        v = v.Elem()
-        t = t.Elem()
-    }
-    
-    if v.Kind() != reflect.Struct {
-        return result
-    }
-    
-    for i := 0; i < v.NumField(); i++ {
-        field := t.Field(i)
-        value := v.Field(i)
-        
-        if !value.CanInterface() {
-            continue
-        }
-        
-        // 获取字段名（可以从标签获取）
-        fieldName := field.Name
-        if dbTag := field.Tag.Get("db"); dbTag != "" {
-            fieldName = dbTag
-        } else {
-            fieldName = strings.ToLower(fieldName)
-        }
-        
-        result[fieldName] = value.Interface()
-    }
-    
-    return result
-}
-
-// 从Map填充结构体
-func mapToStruct(m map[string]interface{}, s interface{}) error {
-    v := reflect.ValueOf(s)
-    if v.Kind() != reflect.Ptr || v.Elem().Kind() != reflect.Struct {
-        return fmt.Errorf("destination must be a pointer to struct")
-    }
-    
-    v = v.Elem()
-    t := v.Type()
-    
-    for i := 0; i < v.NumField(); i++ {
-        field := t.Field(i)
-        fieldValue := v.Field(i)
-        
-        if !fieldValue.CanSet() {
-            continue
-        }
-        
-        // 获取字段名
-        fieldName := field.Name
-        if dbTag := field.Tag.Get("db"); dbTag != "" {
-            fieldName = dbTag
-        } else {
-            fieldName = strings.ToLower(fieldName)
-        }
-        
-        if mapValue, exists := m[fieldName]; exists {
-            // 类型转换
-            if err := setFieldValue(fieldValue, mapValue); err != nil {
-                return fmt.Errorf("error setting field %s: %v", field.Name, err)
-            }
-        }
-    }
-    
-    return nil
-}
-
-func setFieldValue(fieldValue reflect.Value, value interface{}) error {
-    valueReflect := reflect.ValueOf(value)
-    
-    // 如果类型完全匹配
-    if valueReflect.Type() == fieldValue.Type() {
-        fieldValue.Set(valueReflect)
-        return nil
-    }
-    
-    // 类型转换
-    switch fieldValue.Kind() {
-    case reflect.String:
-        fieldValue.SetString(fmt.Sprintf("%v", value))
-    case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-        if valueReflect.CanInt() {
-            fieldValue.SetInt(valueReflect.Int())
-        } else {
-            return fmt.Errorf("cannot convert %v to int", value)
-        }
-    case reflect.Float32, reflect.Float64:
-        if valueReflect.CanFloat() {
-            fieldValue.SetFloat(valueReflect.Float())
-        } else {
-            return fmt.Errorf("cannot convert %v to float", value)
-        }
-    case reflect.Bool:
-        if valueReflect.Kind() == reflect.Bool {
-            fieldValue.SetBool(valueReflect.Bool())
-        } else {
-            return fmt.Errorf("cannot convert %v to bool", value)
-        }
-    default:
-        return fmt.Errorf("unsupported field type: %v", fieldValue.Kind())
-    }
-    
-    return nil
-}
-
-// 示例模型
-type User struct {
-    ID    int    `db:"id"`
-    Name  string `db:"name"`
-    Email string `db:"email"`
-    Age   int    `db:"age"`
-}
-
-func main() {
-    // 查询构建器示例
-    fmt.Println("--- Query Builder ---")
-    
-    user := User{}
-    query := NewQueryBuilder(user).
-        Select("id", "name", "email").
-        Where("age > $1", 18).
-        Where("name LIKE $1", "%Alice%").
-        OrderBy("name", "ASC").
-        Limit(10).
-        Build()
-    
-    fmt.Println("Generated SQL:", query)
-    
-    // 结构体到Map转换
-    fmt.Println("\n--- Struct to Map ---")
-    sampleUser := User{
-        ID:    1,
-        Name:  "Alice",
-        Email: "alice@example.com",
-        Age:   25,
-    }
-    
-    userMap := structToMap(sampleUser)
-    fmt.Printf("User map: %+v\n", userMap)
-    
-    // Map到结构体转换
-    fmt.Println("\n--- Map to Struct ---")
-    data := map[string]interface{}{
-        "id":    2,
-        "name":  "Bob",
-        "email": "bob@example.com",
-        "age":   30,
-    }
-    
-    var newUser User
-    if err := mapToStruct(data, &newUser); err != nil {
-        fmt.Printf("Error: %v\n", err)
-    } else {
-        fmt.Printf("New user: %+v\n", newUser)
-    }
-}
-```
-
-#### 1.9 反射的性能考虑
-
-1. 性能测试
+#### 1.13 通道操作
 
 ```go
 package main
@@ -4905,520 +4854,159 @@ import (
     "time"
 )
 
-type TestStruct struct {
-    ID   int
-    Name string
-    Age  int
-}
-
-func directAccess(s *TestStruct) {
-    s.ID = 1
-    s.Name = "Test"
-    s.Age = 25
-}
-
-func reflectionAccess(s interface{}) {
-    v := reflect.ValueOf(s).Elem()
-    v.FieldByName("ID").SetInt(1)
-    v.FieldByName("Name").SetString("Test")
-    v.FieldByName("Age").SetInt(25)
-}
-
-func benchmarkDirect(iterations int) time.Duration {
-    start := time.Now()
+func analyzeChannel(ch interface{}) {
+    v := reflect.ValueOf(ch)
+    t := reflect.TypeOf(ch)
     
-    for i := 0; i < iterations; i++ {
-        s := &TestStruct{}
-        directAccess(s)
-    }
-    
-    return time.Since(start)
-}
-
-func benchmarkReflection(iterations int) time.Duration {
-    start := time.Now()
-    
-    for i := 0; i < iterations; i++ {
-        s := &TestStruct{}
-        reflectionAccess(s)
-    }
-    
-    return time.Since(start)
-}
-
-func benchmarkReflectionCached(iterations int) time.Duration {
-    // 缓存反射信息
-    t := reflect.TypeOf(TestStruct{})
-    idField, _ := t.FieldByName("ID")
-    nameField, _ := t.FieldByName("Name")
-    ageField, _ := t.FieldByName("Age")
-    
-    start := time.Now()
-    
-    for i := 0; i < iterations; i++ {
-        s := &TestStruct{}
-        v := reflect.ValueOf(s).Elem()
-        
-        v.FieldByIndex(idField.Index).SetInt(1)
-        v.FieldByIndex(nameField.Index).SetString("Test")
-        v.FieldByIndex(ageField.Index).SetInt(25)
-    }
-    
-    return time.Since(start)
-}
-
-func main() {
-    iterations := 1000000
-    
-    fmt.Printf("Running %d iterations...\n", iterations)
-    
-    directTime := benchmarkDirect(iterations)
-    reflectionTime := benchmarkReflection(iterations)
-    cachedTime := benchmarkReflectionCached(iterations)
-    
-    fmt.Printf("Direct access: %v\n", directTime)
-    fmt.Printf("Reflection access: %v\n", reflectionTime)
-    fmt.Printf("Cached reflection: %v\n", cachedTime)
-    
-    fmt.Printf("Reflection is %.2fx slower than direct access\n", 
-        float64(reflectionTime)/float64(directTime))
-    fmt.Printf("Cached reflection is %.2fx slower than direct access\n", 
-        float64(cachedTime)/float64(directTime))
-}
-```
-
-2. 优化建议
-
-```go
-package main
-
-import (
-    "fmt"
-    "reflect"
-    "sync"
-)
-
-// 类型信息缓存
-var typeCache = make(map[reflect.Type]*TypeInfo)
-var typeCacheMutex sync.RWMutex
-
-type TypeInfo struct {
-    Type   reflect.Type
-    Fields map[string]reflect.StructField
-}
-
-func getTypeInfo(t reflect.Type) *TypeInfo {
-    typeCacheMutex.RLock()
-    info, exists := typeCache[t]
-    typeCacheMutex.RUnlock()
-    
-    if exists {
-        return info
-    }
-    
-    // 创建新的类型信息
-    info = &TypeInfo{
-        Type:   t,
-        Fields: make(map[string]reflect.StructField),
-    }
-    
-    // 缓存字段信息
-    for i := 0; i < t.NumField(); i++ {
-        field := t.Field(i)
-        info.Fields[field.Name] = field
-    }
-    
-    // 存储到缓存
-    typeCacheMutex.Lock()
-    typeCache[t] = info
-    typeCacheMutex.Unlock()
-    
-    return info
-}
-
-// 优化的字段设置函数
-func setFieldOptimized(v reflect.Value, fieldName string, value interface{}) error {
-    typeInfo := getTypeInfo(v.Type())
-    
-    field, exists := typeInfo.Fields[fieldName]
-    if !exists {
-        return fmt.Errorf("field %s not found", fieldName)
-    }
-    
-    fieldValue := v.FieldByIndex(field.Index)
-    if !fieldValue.CanSet() {
-        return fmt.Errorf("field %s cannot be set", fieldName)
-    }
-    
-    return setFieldValue(fieldValue, value)
-}
-
-func main() {
-    fmt.Println("--- Performance Optimization Tips ---")
-    
-    fmt.Println("1. 缓存反射信息")
-    fmt.Println("2. 使用FieldByIndex而不是FieldByName")
-    fmt.Println("3. 预先检查CanSet()")
-    fmt.Println("4. 避免重复的TypeOf调用")
-    fmt.Println("5. 考虑使用代码生成替代反射")
-    
-    type TestStruct struct {
-        Name string
-        Age  int
-    }
-    
-    s := TestStruct{}
-    v := reflect.ValueOf(&s).Elem()
-    
-    // 使用优化的字段设置
-    if err := setFieldOptimized(v, "Name", "Alice"); err != nil {
-        fmt.Printf("Error: %v\n", err)
-    }
-    
-    if err := setFieldOptimized(v, "Age", 25); err != nil {
-        fmt.Printf("Error: %v\n", err)
-    }
-    
-    fmt.Printf("Result: %+v\n", s)
-}
-```
-
-#### 1.10 反射的最佳实践
-
-1. 何时使用反射
-
-```go
-package main
-
-import (
-    "fmt"
-    "reflect"
-)
-
-// 好的反射使用场景
-func goodReflectionUseCases() {
-    fmt.Println("--- Good Use Cases for Reflection ---")
-    
-    // 1. 通用序列化/反序列化
-    fmt.Println("1. JSON/XML serialization")
-    
-    // 2. 数据验证框架
-    fmt.Println("2. Data validation frameworks")
-    
-    // 3. ORM映射
-    fmt.Println("3. ORM mapping")
-    
-    // 4. 配置绑定
-    fmt.Println("4. Configuration binding")
-    
-    // 5. 测试框架
-    fmt.Println("5. Testing frameworks")
-    
-    // 6. 依赖注入
-    fmt.Println("6. Dependency injection")
-}
-
-// 应该避免的反射使用
-func avoidReflectionUseCases() {
-    fmt.Println("\n--- Avoid Reflection For ---")
-    
-    // 1. 简单的类型断言
-    fmt.Println("1. Simple type assertions")
-    
-    // 2. 已知类型的操作
-    fmt.Println("2. Operations on known types")
-    
-    // 3. 性能关键路径
-    fmt.Println("3. Performance-critical paths")
-    
-    // 4. 简单的条件逻辑
-    fmt.Println("4. Simple conditional logic")
-}
-
-// 反射的替代方案
-func alternativesToReflection() {
-    fmt.Println("\n--- Alternatives to Reflection ---")
-    
-    // 1. 接口
-    fmt.Println("1. Interfaces")
-    
-    // 2. 类型断言
-    fmt.Println("2. Type assertions")
-    
-    // 3. 代码生成
-    fmt.Println("3. Code generation")
-    
-    // 4. 泛型（Go 1.18+）
-    fmt.Println("4. Generics")
-}
-
-func main() {
-    goodReflectionUseCases()
-    avoidReflectionUseCases()
-    alternativesToReflection()
-}
-```
-
-2. 错误处理和安全性
-
-```go
-package main
-
-import (
-    "fmt"
-    "reflect"
-)
-
-// 安全的反射操作
-func safeReflectionOperations() {
-    fmt.Println("--- Safe Reflection Operations ---")
-    
-    var data interface{} = "hello"
-    
-    // 1. 检查nil
-    if data == nil {
-        fmt.Println("Data is nil")
+    if v.Kind() != reflect.Chan {
+        fmt.Println("Not a channel")
         return
     }
     
-    v := reflect.ValueOf(data)
+    fmt.Printf("Channel type: %s\n", t)
+    // t.Elem() 返回通道元素类型
+    fmt.Printf("Element type: %s\n", t.Elem())
+    // t.ChanDir() 返回通道方向
+    fmt.Printf("Channel direction: %s\n", t.ChanDir())
+    // v.Cap() 返回通道容量
+    fmt.Printf("Channel capacity: %d\n", v.Cap())
+    // v.Len() 返回通道中当前元素数量
+    fmt.Printf("Channel length: %d\n", v.Len())
+    fmt.Printf("Is nil: %t\n", v.IsNil())
     
-    // 2. 检查有效性
-    if !v.IsValid() {
-        fmt.Println("Value is not valid")
-        return
+    // 检查通道方向
+    switch t.ChanDir() {
+    case reflect.BothDir:
+        fmt.Println("Bidirectional channel")
+    case reflect.SendDir:
+        fmt.Println("Send-only channel")
+    case reflect.RecvDir:
+        fmt.Println("Receive-only channel")
+    }
+}
+
+func channelOperations() {
+    // 创建通道
+    ch := make(chan int, 3)
+    v := reflect.ValueOf(ch)
+    
+    // 发送数据
+    // v.Send() 发送值到通道
+    v.Send(reflect.ValueOf(1))
+    v.Send(reflect.ValueOf(2))
+    v.Send(reflect.ValueOf(3))
+    
+    fmt.Printf("After sending: length=%d, capacity=%d\n", v.Len(), v.Cap())
+    
+    // 接收数据
+    // v.Recv() 返回 (reflect.Value, bool)
+    for v.Len() > 0 {
+        val, ok := v.Recv()
+        if ok {
+            fmt.Printf("Received: %v\n", val.Int())
+        }
     }
     
-    // 3. 类型检查
-    if v.Kind() != reflect.String {
-        fmt.Printf("Expected string, got %v\n", v.Kind())
-        return
-    }
-    
-    // 4. 安全的类型转换
-    if str, ok := data.(string); ok {
-        fmt.Printf("String value: %s\n", str)
-    }
-    
-    // 5. 检查是否可以设置
-    if v.CanSet() {
-        fmt.Println("Value can be set")
+    // 非阻塞接收
+    // v.TryRecv() 返回 (reflect.Value, bool)
+    val, ok := v.TryRecv()
+    if ok {
+        fmt.Printf("Non-blocking receive: %v\n", val.Int())
     } else {
-        fmt.Println("Value cannot be set")
+        fmt.Println("Channel is empty")
     }
+    
+    // 非阻塞发送
+    // v.TrySend() 返回 bool
+    success := v.TrySend(reflect.ValueOf(42))
+    fmt.Printf("Non-blocking send success: %t\n", success)
+    
+    // 关闭通道
+    v.Close()
+    fmt.Println("Channel closed")
+    
+    // 检查通道是否关闭
+    _, ok = v.Recv()
+    fmt.Printf("Channel still open: %t\n", ok)
 }
 
-// 处理反射错误
-func handleReflectionErrors() {
-    fmt.Println("\n--- Handling Reflection Errors ---")
+func createChannel(elementType reflect.Type, buffer int) interface{} {
+    // reflect.ChanOf() 创建通道类型
+    chanType := reflect.ChanOf(reflect.BothDir, elementType)
+    // reflect.MakeChan() 创建通道
+    ch := reflect.MakeChan(chanType, buffer)
     
-    defer func() {
-        if r := recover(); r != nil {
-            fmt.Printf("Recovered from panic: %v\n", r)
-        }
-    }()
+    return ch.Interface()
+}
+
+func selectOperation() {
+    ch1 := make(chan int, 1)
+    ch2 := make(chan string, 1)
     
-    var data interface{} = 42
-    v := reflect.ValueOf(data)
+    // 使用reflect.Select进行选择操作
+    ch1V := reflect.ValueOf(ch1)
+    ch2V := reflect.ValueOf(ch2)
     
-    // 这会引发panic，因为int不能调用String()方法
-    // 在实际代码中应该先检查类型
-    if v.Kind() == reflect.String {
-        fmt.Println(v.String())
-    } else {
-        fmt.Printf("Value is not a string, it's %v\n", v.Kind())
+    // 准备数据
+    ch1V.Send(reflect.ValueOf(42))
+    ch2V.Send(reflect.ValueOf("hello"))
+    
+    // 准备select cases
+    cases := []reflect.SelectCase{
+        {
+            Dir:  reflect.SelectRecv,
+            Chan: reflect.ValueOf(ch1),
+        },
+        {
+            Dir:  reflect.SelectRecv,
+            Chan: reflect.ValueOf(ch2),
+        },
+        {
+            Dir: reflect.SelectDefault,
+        },
+    }
+    
+    // reflect.Select() 返回 (chosen int, recv reflect.Value, recvOK bool)
+    chosen, recv, recvOK := reflect.Select(cases)
+    
+    switch chosen {
+    case 0:
+        fmt.Printf("Received from ch1: %v, ok: %t\n", recv.Int(), recvOK)
+    case 1:
+        fmt.Printf("Received from ch2: %v, ok: %t\n", recv.String(), recvOK)
+    case 2:
+        fmt.Println("Default case")
     }
 }
 
 func main() {
-    safeReflectionOperations()
-    handleReflectionErrors()
-}
-```
-
-#### 1.11 总结
-
-反射是Go语言的强大特性，但需要谨慎使用：
-
-**优点：**
-
-- 提供运行时类型信息
-- 支持动态操作
-- 适用于通用库和框架
-- 可以实现灵活的序列化/反序列化
-
-**缺点：**
-
-- 性能开销较大
-- 编译时类型检查缺失
-- 代码可读性降低
-- 运行时错误风险
-
-**最佳实践：**
-
-- 优先使用接口和类型断言
-- 缓存反射信息以提高性能
-- 进行充分的错误检查
-- 在性能关键路径避免使用反射
-- 考虑使用代码生成替代反射
-
-通过合理使用反射，可以构建更加灵活和通用的Go程序，但要始终权衡灵活性和性能的关系。1 JSON序列化器
-
-```go
-package main
-
-import (
-    "fmt"
-    "reflect"
-    "strconv"
-    "strings"
-)
-
-type Person struct {
-    Name  string `json:"name"`
-    Age   int    `json:"age"`
-    Email string `json:"email,omitempty"`
-}
-
-type Address struct {
-    Street string `json:"street"`
-    City   string `json:"city"`
-}
-
-func toJSON(v interface{}) string {
-    return toJSONValue(reflect.ValueOf(v), 0)
-}
-
-func toJSONValue(v reflect.Value, indent int) string {
-    t := v.Type()
+    // 分析不同类型的通道
+    fmt.Println("--- Unbuffered channel ---")
+    unbufferedCh := make(chan int)
+    analyzeChannel(unbufferedCh)
     
-    switch v.Kind() {
-    case reflect.String:
-        return fmt.Sprintf(`"%s"`, v.String())
-    case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-        return strconv.FormatInt(v.Int(), 10)
-    case reflect.Float32, reflect.Float64:
-        return strconv.FormatFloat(v.Float(), 'f', -1, 64)
-    case reflect.Bool:
-        return strconv.FormatBool(v.Bool())
-    case reflect.Slice:
-        if v.IsNil() {
-            return "null"
-        }
-        var items []string
-        for i := 0; i < v.Len(); i++ {
-            items = append(items, toJSONValue(v.Index(i), indent+1))
-        }
-        return "[" + strings.Join(items, ",") + "]"
-    case reflect.Map:
-        if v.IsNil() {
-            return "null"
-        }
-        var pairs []string
-        for _, key := range v.MapKeys() {
-            keyStr := toJSONValue(key, indent+1)
-            valueStr := toJSONValue(v.MapIndex(key), indent+1)
-            pairs = append(pairs, keyStr+":"+valueStr)
-        }
-        return "{" + strings.Join(pairs, ",") + "}"
-    case reflect.Struct:
-        var fields []string
-        for i := 0; i < v.NumField(); i++ {
-            field := t.Field(i)
-            fieldValue := v.Field(i)
-            
-            // 跳过未导出字段
-            if !fieldValue.CanInterface() {
-                continue
-            }
-            
-            // 获取JSON标签
-            jsonTag := field.Tag.Get("json")
-            if jsonTag == "-" {
-                continue
-            }
-            
-            fieldName := field.Name
-            omitEmpty := false
-            
-            if jsonTag != "" {
-                parts := strings.Split(jsonTag, ",")
-                if parts[0] != "" {
-                    fieldName = parts[0]
-                }
-                for _, part := range parts[1:] {
-                    if part == "omitempty" {
-                        omitEmpty = true
-                    }
-                }
-            }
-            
-            // 处理omitempty
-            if omitEmpty && isEmptyValue(fieldValue) {
-                continue
-            }
-            
-            fieldJSON := fmt.Sprintf(`"%s":%s`, fieldName, toJSONValue(fieldValue, indent+1))
-            fields = append(fields, fieldJSON)
-        }
-        return "{" + strings.Join(fields, ",") + "}"
-    case reflect.Ptr:
-        if v.IsNil() {
-            return "null"
-        }
-        return toJSONValue(v.Elem(), indent)
-    case reflect.Interface:
-        if v.IsNil() {
-            return "null"
-        }
-        return toJSONValue(v.Elem(), indent)
-    default:
-        return `"<unsupported type>"`
-    }
-}
-
-func isEmptyValue(v reflect.Value) bool {
-    switch v.Kind() {
-    case reflect.String:
-        return v.String() == ""
-    case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-        return v.Int() == 0
-    case reflect.Float32, reflect.Float64:
-        return v.Float() == 0
-    case reflect.Bool:
-        return !v.Bool()
-    case reflect.Slice, reflect.Map:
-        return v.Len() == 0
-    case reflect.Ptr, reflect.Interface:
-        return v.IsNil()
-    }
-    return false
-}
-
-func main() {
-    person := Person{
-        Name:  "Alice",
-        Age:   30,
-        Email: "alice@example.com",
-    }
+    fmt.Println("\n--- Buffered channel ---")
+    bufferedCh := make(chan string, 5)
+    analyzeChannel(bufferedCh)
     
-    fmt.Println("--- JSON Serialization ---")
-    fmt.Println(toJSON(person))
+    fmt.Println("\n--- Send-only channel ---")
+    var sendOnly chan<- int = make(chan int)
+    analyzeChannel(sendOnly)
     
-    // 测试omitempty
-    personWithoutEmail := Person{
-        Name: "Bob",
-        Age:  25,
-    }
-    fmt.Println(toJSON(personWithoutEmail))
+    fmt.Println("\n--- Receive-only channel ---")
+    var recvOnly <-chan int = make(chan int)
+    analyzeChannel(recvOnly)
     
-    // 测试复杂结构
-    data := map[string]interface{}{
-        "person": person,
-        "numbers": []int{1, 2, 3},
-        "active": true,
-    }
-    fmt.Println(toJSON(data))
+    fmt.Println("\n--- Channel operations ---")
+    channelOperations()
+    
+    fmt.Println("\n--- Dynamic channel creation ---")
+    dynamicCh := createChannel(reflect.TypeOf(int(0)), 2)
+    fmt.Printf("Dynamic channel: %T\n", dynamicCh)
+    analyzeChannel(dynamicCh)
+    
+    fmt.Println("\n--- Select operation ---")
+    selectOperation()
 }
 ```
 

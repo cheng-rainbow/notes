@@ -2,42 +2,27 @@ package main
 
 import (
 	"fmt"
-	"strings"
+	"reflect"
 )
 
-type ValidationError struct {
-	Field   string
-	Value   interface{}
-	Message string
-}
+type Int int
 
-// 实现 Error 接口
-func (e *ValidationError) Error() string {
-	return fmt.Sprintf("validation failed for field '%s' with value '%v': %s",
-		e.Field, e.Value, e.Message)
-}
-
-func validateEmail(email string) error {
-	if !strings.Contains(email, "@") {
-		return &ValidationError{ // 创建一个ValidationError对象返回，会自动调用 Error()
-			Field:   "email",
-			Value:   email,
-			Message: "must contain @ symbol",
-		}
-	}
-	return nil
-}
 func main() {
+	var a Int = 1
 
-	var n *int
-	fmt.Printf("n: %v\n", n)
+	// reflect.TypeOf() 返回 reflect.Type
+	t := reflect.TypeOf(a)
+	// reflect.ValueOf() 返回 reflect.Value
+	v := reflect.ValueOf(a)
 
-	n = new(int)
-	fmt.Printf("n: %v\n", n)
+	fmt.Printf("t: %v\n", t)           // type: main.Int
+	fmt.Printf("kind: %v\n", t.Kind()) // kind: int (底层类型)
+	fmt.Printf("v: %v\n", v)           // value: 1
 
-	x := 1
-	n = &x
-	*n = 10
-
-	fmt.Printf("n: %v\n", x)
+	// Type 和 Value 的常用方法
+	fmt.Printf("Type name: %s\n", t.Name())            // 返回string: "Int"
+	fmt.Printf("Type string: %s\n", t.String())        // 返回string: "main.Int"
+	fmt.Printf("Value type: %s\n", v.Type())           // 返回reflect.Type
+	fmt.Printf("Value kind: %s\n", v.Kind())           // 返回reflect.Kind
+	fmt.Printf("Value interface: %v\n", v.Interface()) // 返回interface{}: 1
 }
